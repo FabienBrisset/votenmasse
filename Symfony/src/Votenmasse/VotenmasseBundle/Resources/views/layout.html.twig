@@ -1,0 +1,38 @@
+{% extends "::layout.html.twig" %}
+
+{% block title %}
+  {{ parent() }}
+{% endblock %}
+
+{% block body %}
+	<div class = "well">
+		<div align="center">
+			<img src="{{ asset('img/Votenmasse.png') }}" alt="Votenmasse"/>
+		</div>
+		<br>
+		<div>
+			<ul class="nav nav-pills nav-stacked">
+				<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
+					<li><button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Accueil</a></button>&nbsp;&nbsp;
+					<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Votes</a></button>&nbsp;&nbsp;
+					<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Résultats</a></button>&nbsp;&nbsp;
+					<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Forum</a></button>
+					<span style = "margin-left: 50px;">Login 
+					<input class="input-mini" type="text" id="login" name="login" />&nbsp;&nbsp;&nbsp;&nbsp;
+					Mot de passe 
+					<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />&nbsp;&nbsp;&nbsp;&nbsp;
+					<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
+					</li>
+				</form>
+			</ul>
+		</div>
+	</div>
+
+  <hr>
+
+  {% block votenmasse_body %}
+  {% endblock %}
+  
+  <hr>
+  
+{% endblock %}

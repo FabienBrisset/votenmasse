@@ -1,0 +1,11 @@
+votenmasse_votenmasse_homepage:
+    pattern:  /hello/{name}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Default:index }
+
+votenmasse_votenmasse_accueil:
+    pattern: /accueil
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:index }
+
+votenmasse_votenmasse_connexion:
+    pattern: /connexion
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:connexion }

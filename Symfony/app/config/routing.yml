@@ -1,0 +1,4 @@
+votenmasse_votenmasse:
+    resource: "@VotenmasseVotenmasseBundle/Resources/config/routing.yml"
+    prefix:   /
+

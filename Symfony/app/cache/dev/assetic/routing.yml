@@ -1,5 +1,0 @@
-_assetic:
-    resource: .
-    type: assetic
-_app:
-    resource: 'C:/Program Files (x86)/EasyPHP-DevServer-14.1VC11/data/localweb/projects/Votenmasse/Symfony/app/config/routing_dev.yml'

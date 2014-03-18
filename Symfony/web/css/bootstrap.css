@@ -8,6 +8,38 @@
  * Designed and built with all the love in the world by @mdo and @fat.
  */
  
+ /* css perso */
+ 
+#titre_formulaire {
+	margin-left: 600px;
+}
+ 
+#form {
+	margin-left: 630px;
+}
+ 
+#form_validatation {
+	margin-left: 680px;
+}
+ 
+#form_nom, #form_prenom, #form_login, #form_motDePasse, #form_mail {
+  width: 140px;
+  margin-bottom: 20px;
+}
+
+#form_sexe {
+	margin-bottom: 20px;
+}
+
+#form_dateDeNaissance_year, #form_dateDeNaissance_month, #form_dateDeNaissance_day {
+	width: 70px;
+	margin-right: 4px;
+	margin-bottom: 20px;
+}
+
+ 
+ /* css bootstrap twitter */
+ 
 .clearfix {
   *zoom: 1;
 }

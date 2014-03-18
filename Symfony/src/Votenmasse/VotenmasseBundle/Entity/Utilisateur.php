@@ -38,9 +38,9 @@ class Utilisateur
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="date_naissance", type="date")
+     * @ORM\Column(name="date_de_naissance", type="date")
      */
-    private $dateNaissance;
+    private $dateDeNaissance;
 
     /**
      * @var string
@@ -69,6 +69,10 @@ class Utilisateur
      * @ORM\Column(name="mail", type="string", length=100)
      */
     private $mail;
+	
+	public function __construct() {
+		$this->dateDeNaissance = date_create('1990-01-01');
+	}
 
 
     /**
@@ -133,9 +137,9 @@ class Utilisateur
      * @param \DateTime $dateNaissance
      * @return Utilisateur
      */
-    public function setDateNaissance($dateNaissance)
+    public function setDateDeNaissance($dateDeNaissance)
     {
-        $this->dateNaissance = $dateNaissance;
+        $this->dateDeNaissance = $dateDeNaissance;
 
         return $this;
     }
@@ -145,9 +149,9 @@ class Utilisateur
      *
      * @return \DateTime 
      */
-    public function getDateNaissance()
+    public function getDateDeNaissance()
     {
-        return $this->dateNaissance;
+        return $this->dateDeNaissance;
     }
 
     /**

@@ -18,14 +18,13 @@ class VotenmasseController extends Controller
 					 ->add('dateDeNaissance', 'birthday')
 					 ->add('sexe', 'choice', array(
 												'choices' => array(
+													1 => 'Homme',
 													2 => "Femme"),
 												'multiple' => false,
-												'expanded' => false,
-												'empty_value' => 'Homme',
-												'empty_data'  => 1))
+												'expanded' => false))
 					 ->add('login', 'text')
 					 ->add('motDePasse', 'password')
-					 ->add('mail', 'text')
+					 ->add('mail', 'email')
 					 ->getForm();
 
 		// On récupère la requête

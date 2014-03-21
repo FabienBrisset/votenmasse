@@ -1,0 +1,35 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Creation - Vote
+{% endblock %}
+
+{% block votenmasse_body %}
+
+	<table class="table">
+		<legend><b>Créez votre vote</b></legend>
+		<tr>
+			<td>
+				<div class="well">
+					<form method="post" class="creation_vote" {{ form_enctype(form1) }} {{ form_enctype(form2) }} {{ form_enctype(form3) }}>
+						{{ form_widget(form1) }} 
+				</div>
+			</td>
+			<td>
+				<div class="well">
+						{{ form_widget(form2) }} 
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td colspan = "2">
+				<div class="well">
+						{{ form_widget(form3) }}
+				</div>
+			</td>
+		</tr>
+	</table>
+	<input type="submit" class="btn btn-primary" id="form_validatation_vote" value="Créer le vote" />
+	</form>
+
+{% endblock %}

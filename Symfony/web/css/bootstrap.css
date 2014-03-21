@@ -10,31 +10,78 @@
  
  /* css perso */
  
+ 
+ /* css formulaire Inscription */
+ 
 #titre_formulaire {
 	margin-left: 600px;
 }
  
-#form {
+form.Inscription #form {
 	margin-left: 630px;
 }
  
-#form_validatation {
+form.Inscription #form_validatation {
 	margin-left: 680px;
 }
  
-#form_nom, #form_prenom, #form_login, #form_motDePasse, #form_mail {
+form.Inscription #form_nom, #form_prenom, #form_login, #form_motDePasse, #form_mail {
   width: 140px;
   margin-bottom: 20px;
 }
 
-#form_sexe {
+form.Inscription #form_sexe {
 	margin-bottom: 20px;
 }
 
-#form_dateDeNaissance_year, #form_dateDeNaissance_month, #form_dateDeNaissance_day {
+form.Inscription #form_dateDeNaissance_year, #form_dateDeNaissance_month, #form_dateDeNaissance_day {
 	width: 70px;
 	margin-right: 4px;
 	margin-bottom: 20px;
+}
+
+ /* css formulaire Creation de Vote */
+ 
+ form.creation_vote #form_choix1, #form_choix2, #form_choix3, #form_choix4, #form_choix5, #form_choix6, #form_choix7, #form_choix8, #form_choix9, #form_choix10 {
+	margin-bottom: 20px;
+ }
+ 
+#form_choix1 {
+	margin-bottom: 20px;
+ }
+ 
+ #form_validatation_vote {
+	margin-left: 400px;
+	margin-bottom: 20px;
+}
+
+form.creation_vote #form_nom, #form_texte, #form_dateDeFin {
+	margin-bottom: 20px;
+}
+
+form.creation_vote #form_dateDeFin_year, #form_dateDeFin_month, #form_dateDeFin_day {
+	width: 70px;
+	margin-right: 4px;
+}
+
+form.creation_vote label[for=form_nom], label[for=form_texte] {
+	width: 70px;
+}
+
+#form_type {
+	margin-bottom: 20px;
+}
+
+form.creation_vote label[for=form_type], label[for=form_groupeAssocie]{
+	width: 100px;
+}
+
+#form_groupeAssocie {
+	margin-bottom: 90px;
+}
+
+#form_choix1, #form_choix2, #form_choix3, #form_choix4, #form_choix5, #form_choix6, #form_choix7, #form_choix8, #form_choix9, #form_choix10, label[for=form_choix1], label[for=form_choix2], label[for=form_choix3], label[for=form_choix4], label[for=form_choix5], label[for=form_choix6], label[for=form_choix7], label[for=form_choix8], label[for=form_choix9], label[for=form_choix10] {
+	margin-left: 320px;
 }
 
  

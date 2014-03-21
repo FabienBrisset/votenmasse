@@ -9,3 +9,7 @@ votenmasse_votenmasse_accueil:
 votenmasse_votenmasse_connexion:
     pattern: /connexion
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:connexion }
+
+votenmasse_votenmasse_creation_vote:
+    pattern: /creation/vote
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationVote }

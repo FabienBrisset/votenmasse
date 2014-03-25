@@ -52,56 +52,56 @@ class Vote
     /**
      * @var string
      *
-     * @ORM\Column(name="choix3", type="string", length=255)
+     * @ORM\Column(name="choix3", type="string", length=255, nullable=true)
      */
     private $choix3;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix4", type="string", length=255)
+     * @ORM\Column(name="choix4", type="string", length=255, nullable=true)
      */
     private $choix4;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix5", type="string", length=255)
+     * @ORM\Column(name="choix5", type="string", length=255, nullable=true)
      */
     private $choix5;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix6", type="string", length=255)
+     * @ORM\Column(name="choix6", type="string", length=255, nullable=true)
      */
     private $choix6;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix7", type="string", length=255)
+     * @ORM\Column(name="choix7", type="string", length=255, nullable=true)
      */
     private $choix7;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix8", type="string", length=255)
+     * @ORM\Column(name="choix8", type="string", length=255, nullable=true)
      */
     private $choix8;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix9", type="string", length=255)
+     * @ORM\Column(name="choix9", type="string", length=255, nullable=true)
      */
     private $choix9;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="choix10", type="string", length=255)
+     * @ORM\Column(name="choix10", type="string", length=255, nullable=true)
      */
     private $choix10;
 
@@ -129,7 +129,7 @@ class Vote
     /**
      * @var string
      *
-     * @ORM\Column(name="groupe_associe", type="string", length=255)
+     * @ORM\Column(name="groupe_associe", type="string", length=255, nullable=true)
      */
     private $groupeAssocie;
 
@@ -152,6 +152,7 @@ class Vote
 		$this->dateDeFin = date_create(date('Y-m-d'));
 		$this->etat = true;
 		// Ici on définira createur = $_SESSION ....
+		$this->createur = 1;
 	}
 
 

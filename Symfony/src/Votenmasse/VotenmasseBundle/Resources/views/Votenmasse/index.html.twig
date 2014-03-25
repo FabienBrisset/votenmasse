@@ -5,13 +5,32 @@
 {% endblock %}
 
 {% block votenmasse_body %}
-
-	<div class="well">
-		<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-		<form method="post" class="Inscription" {{ form_enctype(form) }}>
-		{{ form_widget(form) }}
-		<input type="submit" class="btn btn-primary" id="form_validatation" />
-		</form>
-	</div>
+	<table class="table">
+		<tr>
+			<td>
+				<div class="well">
+					
+				</div>
+			</td>
+			<td>
+				<div class="well">
+					<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
+					<form method="post" class="Inscription" {{ form_enctype(form) }}>
+					{{ form_widget(form) }}
+					<input type="submit" class="btn btn-primary" id="form_validatation" />
+					</form>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td colspan = "2">
+				<div class="well">
+						<img src = "{{ asset('img/pub.png') }}" alt = "Public" /> Ce logo signifie que le vote ou le groupe est public (accessible à tous) <br>
+						<img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /> Ce logo signifie que le vote ou le groupe est réservé aux inscrits <br>
+						<img src = "{{ asset('img/pri.png') }}" alt = "Privé" /> Ce logo signifie que le vote ou le groupe est privé (vous devez être membre du groupe)
+				</div>
+			</td>
+		</tr>
+	</table>
 
 {% endblock %}

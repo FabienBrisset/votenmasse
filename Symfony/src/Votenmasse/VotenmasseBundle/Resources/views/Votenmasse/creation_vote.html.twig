@@ -6,30 +6,75 @@
 
 {% block votenmasse_body %}
 
-	<table class="table">
-		<legend><b>Créez votre vote</b></legend>
-		<tr>
-			<td>
-				<div class="well">
-					<form method="post" class="creation_vote" {{ form_enctype(form1) }} {{ form_enctype(form2) }} {{ form_enctype(form3) }}>
-						{{ form_widget(form1) }} 
-				</div>
-			</td>
-			<td>
-				<div class="well">
-						{{ form_widget(form2) }} 
-				</div>
-			</td>
-		</tr>
-		<tr>
-			<td colspan = "2">
-				<div class="well">
-						{{ form_widget(form3) }}
-				</div>
-			</td>
-		</tr>
-	</table>
-	<input type="submit" class="btn btn-primary" id="form_validatation_vote" value="Créer le vote" />
+	<form method="post" class="creation_vote" {{ form_enctype(form) }}>
+		<table class="table">
+			<legend><b>Créez votre vote</b></legend>
+			<tr>
+				<td>
+					<div class="well">
+						{{ form_label(form.nom) }}
+						{{ form_errors(form.nom) }}
+						{{ form_widget(form.nom) }}
+						{{ form_label(form.texte) }}
+						{{ form_errors(form.texte) }}
+						{{ form_widget(form.texte) }}
+						{{ form_label(form.dateDeFin) }}
+						{{ form_errors(form.dateDeFin) }}
+						{{ form_widget(form.dateDeFin) }}
+					</div>
+				</td>
+				<td>
+					<div class="well">
+						{% if message_erreur is defined %}
+							<h5 style="color:red">{{ message_erreur }}</h5>
+						{% endif %}
+						{{ form_label(form.type) }}
+						{{ form_errors(form.type) }}
+						{{ form_widget(form.type) }}
+						{{ form_label(form.groupeAssocie) }}
+						{{ form_errors(form.groupeAssocie) }}
+						{{ form_widget(form.groupeAssocie) }}
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td colspan = "2">
+					<div class="well">
+						{{ form_label(form.choix1) }}
+						{{ form_errors(form.choix1) }}
+						{{ form_widget(form.choix1) }}
+						{{ form_label(form.choix2) }}
+						{{ form_errors(form.choix2) }}
+						{{ form_widget(form.choix2) }}
+						{{ form_label(form.choix3) }}
+						{{ form_errors(form.choix3) }}
+						{{ form_widget(form.choix3) }}
+						{{ form_label(form.choix4) }}
+						{{ form_errors(form.choix4) }}
+						{{ form_widget(form.choix4) }}
+						{{ form_label(form.choix5) }}
+						{{ form_errors(form.choix5) }}
+						{{ form_widget(form.choix5) }}
+						{{ form_label(form.choix6) }}
+						{{ form_errors(form.choix6) }}
+						{{ form_widget(form.choix6) }}
+						{{ form_label(form.choix7) }}
+						{{ form_errors(form.choix7) }}
+						{{ form_widget(form.choix7) }}
+						{{ form_label(form.choix8) }}
+						{{ form_errors(form.choix8) }}
+						{{ form_widget(form.choix8) }}
+						{{ form_label(form.choix9) }}
+						{{ form_errors(form.choix9) }}
+						{{ form_widget(form.choix9) }}
+						{{ form_label(form.choix10) }}
+						{{ form_errors(form.choix10) }}
+						{{ form_widget(form.choix10) }}
+					</div>
+				</td>
+			</tr>
+		</table>
+		<input type="submit" class="btn btn-primary" id="form_validatation_vote" value="Créer le vote" />
 	</form>
 
 {% endblock %}

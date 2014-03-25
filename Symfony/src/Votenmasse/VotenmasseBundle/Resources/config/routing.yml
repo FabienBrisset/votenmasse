@@ -2,6 +2,10 @@ votenmasse_votenmasse_homepage:
     pattern:  /hello/{name}
     defaults: { _controller: VotenmasseVotenmasseBundle:Default:index }
 
+votenmasse_votenmasse_index:
+    pattern: /
+    defaults : { _controller: VotenmasseVotenmasseBundle:Votenmasse:index }
+
 votenmasse_votenmasse_accueil:
     pattern: /accueil
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:index }
@@ -13,3 +17,7 @@ votenmasse_votenmasse_connexion:
 votenmasse_votenmasse_creation_vote:
     pattern: /creation/vote
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationVote }
+
+votenmasse_votenmasse_creation_groupe:
+    pattern: /creation/groupe
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationGroupe }

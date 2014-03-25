@@ -13,18 +13,6 @@
  
  /* css formulaire Inscription */
  
-#titre_formulaire {
-	margin-left: 600px;
-}
- 
-form.Inscription #form {
-	margin-left: 630px;
-}
- 
-form.Inscription #form_validatation {
-	margin-left: 680px;
-}
- 
 form.Inscription #form_nom, #form_prenom, #form_login, #form_motDePasse, #form_mail {
   width: 140px;
   margin-bottom: 20px;
@@ -81,6 +69,31 @@ form.creation_vote label[for=form_type], label[for=form_groupeAssocie]{
 }
 
 #form_choix1, #form_choix2, #form_choix3, #form_choix4, #form_choix5, #form_choix6, #form_choix7, #form_choix8, #form_choix9, #form_choix10, label[for=form_choix1], label[for=form_choix2], label[for=form_choix3], label[for=form_choix4], label[for=form_choix5], label[for=form_choix6], label[for=form_choix7], label[for=form_choix8], label[for=form_choix9], label[for=form_choix10] {
+	margin-left: 320px;
+}
+
+ /* css formulaire Creation de Groupe */
+ 
+ form.creation_groupe #form_nom {
+	margin-bottom: 20px;
+}
+#form_etat {
+	margin-bottom: 85px;
+}
+
+label[for=form_moderateur] {
+	margin-top: 20px;
+}
+
+#ajout_membre {
+	margin-bottom: 20px;
+}
+
+.btn-danger {
+	margin-top: 20px;
+}
+
+#form_utilisateurs, label[for=form_utilisateurs] {
 	margin-left: 320px;
 }
 

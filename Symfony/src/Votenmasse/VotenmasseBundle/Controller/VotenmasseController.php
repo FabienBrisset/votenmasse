@@ -288,6 +288,6 @@ class VotenmasseController extends Controller
 	}
 	
 	public function connexionAction() {
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:accueil.html.twig');
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
 	}
 }

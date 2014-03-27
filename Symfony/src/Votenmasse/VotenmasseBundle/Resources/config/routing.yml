@@ -14,6 +14,10 @@ votenmasse_votenmasse_connexion:
     pattern: /connexion
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:connexion }
 
+votenmasse_votenmasse_deconnexion:
+   pattern: /deconnexion
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:deconnexion }
+
 votenmasse_votenmasse_creation_vote:
     pattern: /creation/vote
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationVote }

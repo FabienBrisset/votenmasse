@@ -1,10 +1,10 @@
 <?php
-
 namespace Votenmasse\VotenmasseBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Votenmasse\VotenmasseBundle\Entity\Utilisateur;
 use Votenmasse\VotenmasseBundle\Entity\Vote;
 use Votenmasse\VotenmasseBundle\Entity\Groupe;
@@ -14,6 +14,11 @@ class VotenmasseController extends Controller
 {
 	public function indexAction()
 	{
+		// On récupère la requête
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+	
 		$utilisateur = new Utilisateur;
 
 		$form = $this->createFormBuilder($utilisateur)
@@ -33,9 +38,6 @@ class VotenmasseController extends Controller
 					 ->add('mail', 'email')
 					 ->getForm();
 
-		// On récupère la requête
-		$request = $this->get('request');
-
 		// On vérifie qu'elle est de type POST
 		if ($request->getMethod() == 'POST') {
 		  // On fait le lien Requête <-> Formulaire
@@ -49,9 +51,9 @@ class VotenmasseController extends Controller
 			$em = $this->getDoctrine()->getManager();
 			$em->persist($utilisateur);
 			$em->flush();
-
+			
 			// On redirige vers la page de connexion
-			return $this->redirect($this->generateUrl('votenmasse_votenmasse_connexion'));
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		  }
 		}
 
@@ -61,11 +63,17 @@ class VotenmasseController extends Controller
 
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 		  'form' => $form->createView(),
+		  'utilisateur' => $u
 		));
 	}
 	
 	public function creationVoteAction()
 	{
+		// On récupère la requête
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+	
 		$vote = new Vote;
 
 		$form = $this->createFormBuilder($vote)
@@ -102,9 +110,6 @@ class VotenmasseController extends Controller
 											'required' => false))
 				     ->getForm();
 
-		// On récupère la requête
-		$request = $this->get('request');
-
 		// On vérifie qu'elle est de type POST
 		if ($request->getMethod() == 'POST') {
 		  // On fait le lien Requête <-> Formulaire
@@ -121,30 +126,35 @@ class VotenmasseController extends Controller
 				if($request->request->get("form")['type'] == 'Vote privé' && $groupeAssocie->getEtat() != 'Groupe privé') {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
 					'form' => $form->createView(),
-					'message_erreur' => "Un vote privé doit être associé à un groupe privé"));
+					'message_erreur' => "Un vote privé doit être associé à un groupe privé",
+					'utilisateur' => $u));
 				}
 				else if($request->request->get("form")['type'] == 'Vote réservé aux inscrits' && $groupeAssocie->getEtat() != 'Groupe réservé aux inscrits') {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
 					'form' => $form->createView(),
-					'message_erreur' => "Un vote réservé aux inscrits doit être associé à un groupe réservé aux inscrits"));
+					'message_erreur' => "Un vote réservé aux inscrits doit être associé à un groupe réservé aux inscrits",
+					'utilisateur' => $u));
 				}
 				else if($request->request->get("form")['type'] == 'Vote public' && $groupeAssocie->getEtat() != 'Groupe public') {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
 					'form' => $form->createView(),
-					'message_erreur' => "Un vote public doit être associé à un groupe public"));
+					'message_erreur' => "Un vote public doit être associé à un groupe public",
+					'utilisateur' => $u));
 				}
 			}
 			else {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
 					'form' => $form->createView(),
-					'message_erreur' => "Le groupe associé que vous avez indiqué n'existe pas"));
+					'message_erreur' => "Le groupe associé que vous avez indiqué n'existe pas",
+					'utilisateur' => $u));
 			}
 		  }
 		  else {
 			if($request->request->get("form")['type'] == 'Vote privé') {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
 					'form' => $form->createView(),
-					'message_erreur' => 'Un vote privé doit obligatoirement être associé à un groupe privé'));
+					'message_erreur' => 'Un vote privé doit obligatoirement être associé à un groupe privé',
+					'utilisateur' => $u));
 			}
 		  }
 
@@ -154,7 +164,7 @@ class VotenmasseController extends Controller
 		  $em->flush();
 
 		  // On redirige vers la page d'accueil
-		  return $this->redirect($this->generateUrl('votenmasse_votenmasse_accueil'));
+		  return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 
 		// À ce stade :
@@ -162,12 +172,18 @@ class VotenmasseController extends Controller
 		// - Soit la requête est de type POST, mais le formulaire n'est pas valide, donc on l'affiche de nouveau
 
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
-		  'form' => $form->createView()
+		  'form' => $form->createView(),
+		  'utilisateur' => $u 
 		));
 	}
 	
 	public function creationGroupeAction()
 	{
+		// On récupère la requête
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		
 		$groupe = new Groupe;
 		
 		$utilisateurs = $this->getDoctrine()
@@ -193,9 +209,6 @@ class VotenmasseController extends Controller
 													'required' => false,
 													'mapped' => false))
 						 ->getForm();
-						
-			// On récupère la requête
-			$request = $this->get('request');
 
 			// On vérifie qu'elle est de type POST
 			if ($request->getMethod() == 'POST') {
@@ -241,7 +254,7 @@ class VotenmasseController extends Controller
 					}
 
 				// On redirige vers la page de connexion
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_accueil'));
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 			}
 		}
 		else {
@@ -254,9 +267,6 @@ class VotenmasseController extends Controller
 														"Groupe réservé aux inscrits" => "Groupe réservé aux inscrits",
 														"Groupe privé" => "Groupe privé")))
 						 ->getForm();
-						
-			// On récupère la requête
-			$request = $this->get('request');
 
 			// On vérifie qu'elle est de type POST
 			if ($request->getMethod() == 'POST') {
@@ -273,7 +283,7 @@ class VotenmasseController extends Controller
 				$em->flush();
 
 				// On redirige vers la page de connexion
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_accueil'));
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 			  }
 			}
 		}
@@ -284,10 +294,45 @@ class VotenmasseController extends Controller
 
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_groupe.html.twig', array(
 		  'form' => $form->createView(),
+		  'utilisateur' => $u
 		));
 	}
 	
 	public function connexionAction() {
+		// On récupère la requête
+		$request = $this->get('request');
+
+		// On vérifie qu'elle est de type POST
+		if ($request->getMethod() == 'POST') {
+			$utilisateur = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findBy(array('login' => $request->request->get('login'),
+										'motDePasse' => $request->request->get('mot_de_passe')));
+		
+			if ($utilisateur != NULL) {		
+				$session = new Session();
+				$session->start();
+			
+				$session->set('utilisateur', $request->request->get('login')); 
+				
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+					'utilisateur' => $session->get('utilisateur')));
+			}
+			else {
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
+			}
+		}
+	
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
+	}
+	
+	public function deconnexionAction() {
+		// On récupère la requête
+		$request = $this->get('request');
+		$session = $request->getSession();		
+
+		$session->invalidate();
+		
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
 	}
 }

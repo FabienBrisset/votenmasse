@@ -12,18 +12,37 @@
 		<br>
 		<div>
 			<ul class="nav nav-pills nav-stacked">
-				<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
-					<li><button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Accueil</a></button>&nbsp;&nbsp;
-					<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Votes</a></button>&nbsp;&nbsp;
-					<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Résultats</a></button>&nbsp;&nbsp;
-					<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Forum</a></button>
-					<span style = "margin-left: 45px;">Pseudo 
-					<input class="input-mini" type="text" id="login" name="login" />&nbsp;&nbsp;&nbsp;&nbsp;
-					Mot de passe 
-					<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />&nbsp;&nbsp;&nbsp;&nbsp;
-					<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
-					</li>
-				</form>
+				<li><button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Accueil</a></button>&nbsp;&nbsp;
+				<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Votes</a></button>&nbsp;&nbsp;
+				<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Résultats</a></button>&nbsp;&nbsp;
+				<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Forum</a></button>
+				{% if utilisateur is not defined %}
+					<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
+						<span style = "float: right; margin-top: 10px;">Pseudo 
+						<input class="input-mini" type="text" id="login" name="login" />&nbsp;&nbsp;&nbsp;&nbsp;
+						Mot de passe 
+						<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />&nbsp;&nbsp;&nbsp;&nbsp;
+						<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
+					</form>
+				{% endif %}
+				{% if utilisateur is defined %}
+					{% if utilisateur != NULL %}
+						<form action="{{ path('votenmasse_votenmasse_deconnexion') }}" method="post">
+							<span style = "float: right; margin-top: 10px;"><b>{{ utilisateur }}</b>&nbsp;&nbsp;
+							<button class="btn btn-primary btn-mini" type="submit">Déconnexion <i class="icon-white icon-ok-sign"></i> </button></span>
+						</form>
+					{% endif %}
+					{% if utilisateur == NULL %}
+						<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
+							<span style = "float: right; margin-top: 10px;">Pseudo 
+							<input class="input-mini" type="text" id="login" name="login" />&nbsp;&nbsp;&nbsp;&nbsp;
+							Mot de passe 
+							<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />&nbsp;&nbsp;&nbsp;&nbsp;
+							<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
+						</form>
+					{% endif %}
+				{% endif %}
+				</li>
 			</ul>
 		</div>
 	</div>

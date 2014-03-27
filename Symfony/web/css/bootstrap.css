@@ -13,6 +13,10 @@
  
  /* css formulaire Inscription */
  
+li form {
+	display: inline;
+}
+ 
 form.Inscription #form_nom, #form_prenom, #form_login, #form_motDePasse, #form_mail {
   width: 140px;
   margin-bottom: 20px;

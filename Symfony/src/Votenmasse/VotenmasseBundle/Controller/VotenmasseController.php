@@ -73,6 +73,10 @@ class VotenmasseController extends Controller
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
+		
+		if ($u == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 	
 		$vote = new Vote;
 
@@ -183,6 +187,10 @@ class VotenmasseController extends Controller
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
+		
+		if ($u == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 		
 		$groupe = new Groupe;
 		
@@ -332,7 +340,7 @@ class VotenmasseController extends Controller
 		$session = $request->getSession();		
 
 		$session->invalidate();
-		
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
+			
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 	}
 }

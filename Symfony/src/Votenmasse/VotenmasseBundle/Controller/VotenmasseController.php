@@ -18,6 +18,15 @@ class VotenmasseController extends Controller
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
+		$inscription_valide = $session->get('inscription_valide');
+		
+		if(!is_null($inscription_valide)) {
+			$session->remove('inscription_valide');
+			$message_inscription_valide = "Félicitation vous avez rejoins la communauté Votenmasse";
+		}
+		else {
+			$message_inscription_valide = NULL;
+		}
 	
 		$utilisateur = new Utilisateur;
 
@@ -34,9 +43,32 @@ class VotenmasseController extends Controller
 												'expanded' => false))
 					 ->add('login', 'text', array(
 											'label' => 'Pseudo'))
-					 ->add('motDePasse', 'password')
+					 ->add('motDePasse', 'password', array(
+												'mapped' => false))
 					 ->add('mail', 'email')
 					 ->getForm();
+					 
+		$utilisateur_existe_deja = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneByLogin($request->request->get("form")['login']);
+			
+		if($utilisateur_existe_deja != NULL) {
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+															  'form' => $form->createView(),
+															  'utilisateur' => $u,
+															  'erreur' => "Le login saisi est déjà pris, veuillez en choisir un autre"));
+		}
+		
+		$mail_existe_deja = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneByMail($request->request->get("form")['mail']);
+			
+		if($mail_existe_deja != NULL) {
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+														  'form' => $form->createView(),
+														  'utilisateur' => $u,
+														  'erreur' => "L'adresse mail indiquée existe déjà"));
+		}
 
 		// On vérifie qu'elle est de type POST
 		if ($request->getMethod() == 'POST') {
@@ -48,9 +80,18 @@ class VotenmasseController extends Controller
 		  // (Nous verrons la validation des objets en détail dans le prochain chapitre)
 		  if ($form->isValid()) {
 			// On l'enregistre notre objet $utilisateur dans la base de données
+			
+			$pass = $request->request->get("form")['motDePasse'];
+				
+			$pass_md5 = md5($pass);
+			
+			$utilisateur->setMotDePasse($pass_md5);
+				
 			$em = $this->getDoctrine()->getManager();
 			$em->persist($utilisateur);
 			$em->flush();
+			
+			$session->set('inscription_valide', true); 
 			
 			// On redirige vers la page de connexion
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
@@ -63,7 +104,8 @@ class VotenmasseController extends Controller
 
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 		  'form' => $form->createView(),
-		  'utilisateur' => $u
+		  'utilisateur' => $u,
+		  'inscription_valide' => $message_inscription_valide
 		));
 	}
 	
@@ -113,6 +155,17 @@ class VotenmasseController extends Controller
 					 ->add('choix10', 'text', array( 
 											'required' => false))
 				     ->getForm();
+		
+		$vote_existe_deja = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findOneByNom($request->request->get("form")['nom']);
+			
+		if($vote_existe_deja != NULL) {
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+				  'form' => $form->createView(),
+				  'utilisateur' => $u,
+				  'erreur' => "Un vote du même nom existe déjà, veuillez en choisir un autre"));
+		}
 
 		// On vérifie qu'elle est de type POST
 		if ($request->getMethod() == 'POST') {
@@ -161,6 +214,12 @@ class VotenmasseController extends Controller
 					'utilisateur' => $u));
 			}
 		  }
+		  
+		  $createur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneByLogin($u);
+		  
+		  $vote->setCreateur($createur->getId());
 
 		  // On l'enregistre notre objet $utilisateur dans la base de données
 		  $em = $this->getDoctrine()->getManager();
@@ -200,10 +259,89 @@ class VotenmasseController extends Controller
 		
 		if ($utilisateurs != NULL) {
 			for ($i = 0; $i<sizeof($utilisateurs); $i++) {
-				$utilisateurs_login[$utilisateurs[$i]->getLogin()] = $utilisateurs[$i]->getLogin();
+				if ($utilisateurs[$i]->getLogin() != $u) {
+					$utilisateurs_login[$utilisateurs[$i]->getLogin()] = $utilisateurs[$i]->getLogin();
+				}
 			}
-		
-			$form = $this->createFormBuilder($groupe)
+			
+			if(isset($utilisateurs_login)) {
+				$form = $this->createFormBuilder($groupe)
+							 ->add('nom', 'text')
+							 ->add('description', 'text')
+							 ->add('etat', 'choice', array(
+														'choices' => array(
+															'Groupe public' => 'Groupe public',
+															"Groupe réservé aux inscrits" => "Groupe réservé aux inscrits",
+															"Groupe privé" => "Groupe privé")))
+							 ->add('utilisateurs', 'choice', array(
+														'choices' => $utilisateurs_login,
+														'multiple' => true,
+														'required' => false,
+														'mapped' => false))
+							 ->getForm();
+							 
+				$groupe_existe_deja = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findOneByNom($request->request->get("form")['nom']);
+				
+				if($groupe_existe_deja != NULL) {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_groupe.html.twig', array(
+						  'form' => $form->createView(),
+						  'utilisateur' => $u,
+						  'erreur' => "Un groupe du même nom existe déjà, veuillez en choisir un autre"));
+				}
+
+				// On vérifie qu'elle est de type POST
+				if ($request->getMethod() == 'POST') {
+						
+				  // On fait le lien Requête <-> Formulaire
+				  // À partir de maintenant, la variable $utilisateur contient les valeurs entrées dans le formulaire par le visiteur
+				  $form->bind($request);
+			  
+				$groupe->setAdministrateur($u);
+
+				  // On vérifie que les valeurs entrées sont correctes
+				  // (Nous verrons la validation des objets en détail dans le prochain chapitre)
+					// On l'enregistre notre objet $utilisateur dans la base de données
+					$em = $this->getDoctrine()->getManager();
+					$em->persist($groupe);
+					$em->flush();
+					
+					if(isset($request->request->get("form")['utilisateurs'])) {		
+						$groupe_id = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Groupe')
+							->findOneByNom($request->request->get("form")['nom']);
+												
+						for($i = 0; $i < sizeof($request->request->get("form")['utilisateurs']); $i++) {
+							  // On crée une nouvelle « relation entre 1 article et 1 compétence »
+							  $groupeUtilisateur[$i] = new GroupeUtilisateur;
+							  
+							  $utilisateur_id = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneBylogin($request->request->get("form")['utilisateurs'][$i]);
+
+							  // On la lie au groupe, qui est ici toujours le même
+							  $groupeUtilisateur[$i]->setGroupe($groupe_id);
+							  // On la lie à l'utilisateur, qui change ici dans la boucle foreach
+							  $groupeUtilisateur[$i]->setUtilisateur($utilisateur_id);
+							  
+							  $groupeUtilisateur[$i]->setModerateur(false);
+							  $groupeUtilisateur[$i]->setAccepte(true);
+
+							  // Et bien sûr, on persiste cette entité de relation, propriétaire des deux autres relations
+							  $em->persist($groupeUtilisateur[$i]);
+							}
+							
+							// On déclenche l'enregistrement
+							$em->flush();
+						}
+
+					// On redirige vers la page de connexion
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				}
+			}
+			else {
+				$form = $this->createFormBuilder($groupe)
 						 ->add('nom', 'text')
 						 ->add('description', 'text')
 						 ->add('etat', 'choice', array(
@@ -211,59 +349,25 @@ class VotenmasseController extends Controller
 														'Groupe public' => 'Groupe public',
 														"Groupe réservé aux inscrits" => "Groupe réservé aux inscrits",
 														"Groupe privé" => "Groupe privé")))
-						 ->add('utilisateurs', 'choice', array(
-													'choices' => $utilisateurs_login,
-													'multiple' => true,
-													'required' => false,
-													'mapped' => false))
 						 ->getForm();
 
-			// On vérifie qu'elle est de type POST
-			if ($request->getMethod() == 'POST') {
-					
-			  // On fait le lien Requête <-> Formulaire
-			  // À partir de maintenant, la variable $utilisateur contient les valeurs entrées dans le formulaire par le visiteur
-			  $form->bind($request);
+				// On vérifie qu'elle est de type POST
+				if ($request->getMethod() == 'POST') {
+				  // On fait le lien Requête <-> Formulaire
+				  // À partir de maintenant, la variable $utilisateur contient les valeurs entrées dans le formulaire par le visiteur
+				  $form->bind($request);
 
-			  // On vérifie que les valeurs entrées sont correctes
-			  // (Nous verrons la validation des objets en détail dans le prochain chapitre)
-				// On l'enregistre notre objet $utilisateur dans la base de données
-				$em = $this->getDoctrine()->getManager();
-				$em->persist($groupe);
-				$em->flush();
-				
-				if(isset($request->request->get("form")['utilisateurs'])) {		
-					$groupe_id = $this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:Groupe')
-						->findOneByNom($request->request->get("form")['nom']);
-											
-					for($i = 0; $i < sizeof($request->request->get("form")['utilisateurs']); $i++) {
-						  // On crée une nouvelle « relation entre 1 article et 1 compétence »
-						  $groupeUtilisateur[$i] = new GroupeUtilisateur;
-						  
-						  $utilisateur_id = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneBylogin($request->request->get("form")['utilisateurs'][$i]);
 
-						  // On la lie au groupe, qui est ici toujours le même
-						  $groupeUtilisateur[$i]->setGroupe($groupe_id);
-						  // On la lie à l'utilisateur, qui change ici dans la boucle foreach
-						  $groupeUtilisateur[$i]->setUtilisateur($utilisateur_id);
-						  
-						  $groupeUtilisateur[$i]->setModerateur(false);
-						  $groupeUtilisateur[$i]->setAccepte(true);
+					// On l'enregistre notre objet $utilisateur dans la base de données
+					$em = $this->getDoctrine()->getManager();
+					$em->persist($groupe);
+					$em->flush();
 
-						  // Et bien sûr, on persiste cette entité de relation, propriétaire des deux autres relations
-						  $em->persist($groupeUtilisateur[$i]);
-						}
-						
-						// On déclenche l'enregistrement
-						$em->flush();
-					}
+					// On redirige vers la page de connexion
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 
-				// On redirige vers la page de connexion
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
-			}
+				}
+			}	
 		}
 		else {
 			$form = $this->createFormBuilder($groupe)
@@ -312,10 +416,12 @@ class VotenmasseController extends Controller
 
 		// On vérifie qu'elle est de type POST
 		if ($request->getMethod() == 'POST') {
+			$pass = md5($request->request->get('mot_de_passe'));
+		
 			$utilisateur = $this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 						->findBy(array('login' => $request->request->get('login'),
-										'motDePasse' => $request->request->get('mot_de_passe')));
+										'motDePasse' => $pass));
 		
 			if ($utilisateur != NULL) {		
 				$session = new Session();
@@ -327,11 +433,11 @@ class VotenmasseController extends Controller
 					'utilisateur' => $session->get('utilisateur')));
 			}
 			else {
-				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 			}
 		}
 	
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig');
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 	}
 	
 	public function deconnexionAction() {

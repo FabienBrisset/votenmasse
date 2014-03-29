@@ -151,8 +151,6 @@ class Vote
 		$this->dateDeCreation = date_create(date('Y-m-d'));
 		$this->dateDeFin = date_create(date('Y-m-d'));
 		$this->etat = true;
-		// Ici on définira createur = $_SESSION ....
-		$this->createur = 1;
 	}
 
 

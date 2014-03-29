@@ -6,6 +6,10 @@
 
 {% block votenmasse_body %}
 
+	{% if erreur is defined %}
+		<h5 style="color:red">{{ erreur }}</h5>
+	{% endif %}
+
 	<form method="post" class="creation_vote" {{ form_enctype(form) }}>
 		<table class="table">
 			<legend><b>Créez votre vote</b></legend>

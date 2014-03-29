@@ -5,6 +5,14 @@
 {% endblock %}
 
 {% block votenmasse_body %}
+	{% if erreur is defined %}
+		<h5 style="color:red">{{ erreur }}</h5>
+	{% endif %}
+	{% if inscription_valide is defined %}
+		{% if inscription_valide is not null %}
+			<h5 style="color:red">{{ inscription_valide }}</h5>
+		{% endif %}
+	{% endif %}
 	<table class="table">
 		<tr>
 			<td>
@@ -12,16 +20,29 @@
 					
 				</div>
 			</td>
-			{% if form is defined %}
-			<td>
-				<div class="well">
-					<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-					<form method="post" class="Inscription" {{ form_enctype(form) }}>
-					{{ form_widget(form) }}
-					<input type="submit" class="btn btn-primary" id="form_validatation" />
-					</form>
-				</div>
-			</td>
+			{% if utilisateur is defined %}
+				{% if utilisateur is null %}
+				<td>
+					<div class="well">
+						<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
+						<form method="post" class="Inscription" {{ form_enctype(form) }}>
+						{{ form_widget(form) }}
+						<input type="submit" class="btn btn-primary" id="form_validatation" />
+						</form>
+					</div>
+				</td>
+				{% endif %}
+			{% endif %}
+			{% if utilisateur is not defined %}
+				<td>
+					<div class="well">
+						<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
+						<form method="post" class="Inscription" {{ form_enctype(form) }}>
+						{{ form_widget(form) }}
+						<input type="submit" class="btn btn-primary" id="form_validatation" />
+						</form>
+					</div>
+				</td>
 			{% endif %}
 		</tr>
 		<tr>

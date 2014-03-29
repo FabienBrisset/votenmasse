@@ -49,10 +49,15 @@ class Groupe
      */
     private $description;
 	
+	/**
+     * @var boolean
+     *
+     * @ORM\Column(name="actif", type="boolean")
+     */
+    private $actif;
+	
 	public function __construct() {
-		//Ici on définira le $_SESSION['nom_utilisateur'] comme administrateur
-		//$this->administrateur = 
-		$this->administrateur = "SirGladiusV2";
+		$this->actif = true;
 	}
 
 
@@ -202,5 +207,28 @@ class Groupe
     public function getModerateurs()
     {
         return $this->moderateurs;
+    }
+	
+	/**
+     * Set actif
+     *
+     * @param string $actif
+     * @return Groupe
+     */
+    public function setActif($actif)
+    {
+        $this->actif = $actif;
+
+        return $this;
+    }
+
+    /**
+     * Get actif
+     *
+     * @return string 
+     */
+    public function getActif()
+    {
+        return $this->actif;
     }
 }

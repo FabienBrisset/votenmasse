@@ -298,7 +298,7 @@ class VotenmasseController extends Controller
 				  // À partir de maintenant, la variable $utilisateur contient les valeurs entrées dans le formulaire par le visiteur
 				  $form->bind($request);
 			  
-				$groupe->setAdministrateur($u);
+					$groupe->setAdministrateur($u);
 
 				  // On vérifie que les valeurs entrées sont correctes
 				  // (Nous verrons la validation des objets en détail dans le prochain chapitre)
@@ -356,6 +356,8 @@ class VotenmasseController extends Controller
 				  // On fait le lien Requête <-> Formulaire
 				  // À partir de maintenant, la variable $utilisateur contient les valeurs entrées dans le formulaire par le visiteur
 				  $form->bind($request);
+				  
+				  $groupe->setAdministrateur($u);
 
 
 					// On l'enregistre notre objet $utilisateur dans la base de données
@@ -385,6 +387,8 @@ class VotenmasseController extends Controller
 			  // On fait le lien Requête <-> Formulaire
 			  // À partir de maintenant, la variable $utilisateur contient les valeurs entrées dans le formulaire par le visiteur
 			  $form->bind($request);
+			  
+			  $groupe->setAdministrateur($u);
 
 			  // On vérifie que les valeurs entrées sont correctes
 			  // (Nous verrons la validation des objets en détail dans le prochain chapitre)

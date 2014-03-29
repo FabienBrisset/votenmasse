@@ -50,24 +50,14 @@ class Groupe
     private $description;
 	
 	/**
-     * @var integer
-     *
-     * @ORM\Column(name="utilisateurs", type="integer")
-     * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
-     */
-    private $utilisateurs;
-	
-    /**
      * @var boolean
      *
-     * @ORM\Column(name="moderateurs", type="boolean")
+     * @ORM\Column(name="actif", type="boolean")
      */
-    private $moderateurs;
+    private $actif;
 	
 	public function __construct() {
-		//Ici on définira le $_SESSION['nom_utilisateur'] comme administrateur
-		//$this->administrateur = 
-		$this->administrateur = "SirGladiusV2";
+		$this->actif = true;
 	}
 
 
@@ -171,5 +161,74 @@ class Groupe
     public function getDescription()
     {
         return $this->description;
+    }
+
+    /**
+     * Set utilisateurs
+     *
+     * @param integer $utilisateurs
+     * @return Groupe
+     */
+    public function setUtilisateurs($utilisateurs)
+    {
+        $this->utilisateurs = $utilisateurs;
+
+        return $this;
+    }
+
+    /**
+     * Get utilisateurs
+     *
+     * @return integer 
+     */
+    public function getUtilisateurs()
+    {
+        return $this->utilisateurs;
+    }
+
+    /**
+     * Set moderateurs
+     *
+     * @param boolean $moderateurs
+     * @return Groupe
+     */
+    public function setModerateurs($moderateurs)
+    {
+        $this->moderateurs = $moderateurs;
+
+        return $this;
+    }
+
+    /**
+     * Get moderateurs
+     *
+     * @return boolean 
+     */
+    public function getModerateurs()
+    {
+        return $this->moderateurs;
+    }
+	
+	/**
+     * Set actif
+     *
+     * @param string $actif
+     * @return Groupe
+     */
+    public function setActif($actif)
+    {
+        $this->actif = $actif;
+
+        return $this;
+    }
+
+    /**
+     * Get actif
+     *
+     * @return string 
+     */
+    public function getActif()
+    {
+        return $this->actif;
     }
 }

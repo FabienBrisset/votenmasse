@@ -22,6 +22,14 @@ votenmasse_votenmasse_creation_vote:
     pattern: /creation/vote
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationVote }
 
+votenmasse_votenmasse_votes:
+    pattern: /liste/votes
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:votes }
+
 votenmasse_votenmasse_creation_groupe:
     pattern: /creation/groupe
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationGroupe }
+
+votenmasse_votenmasse_administration:
+   pattern: /administration
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:administration }

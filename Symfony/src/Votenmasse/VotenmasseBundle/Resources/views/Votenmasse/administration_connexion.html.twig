@@ -1,0 +1,19 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Administration - Connexion
+{% endblock %}
+
+{% block votenmasse_body %}
+
+	<div class="well">
+		<form action="{{ path('votenmasse_votenmasse_administration') }}" method="post">
+			<center>
+				Mot de passe
+				<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />
+				<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button>
+			</center>
+		</form>
+	</div>
+
+{% endblock %}

@@ -101,6 +101,17 @@ label[for=form_moderateur] {
 	margin-left: 320px;
 }
 
+/* css liste des votes */
+
+
+.liste_votes { 
+  cursor: pointer;
+ }
+ 
+.liste_votes:hover 
+{ 
+   background-color: lightblue; 
+} 
  
  /* css bootstrap twitter */
  

@@ -109,8 +109,7 @@ class VotenmasseController extends Controller
 		));
 	}
 	
-	public function creationVoteAction()
-	{
+	public function creationVoteAction() {
 		// On récupère la requête
 		$request = $this->get('request');
 		$session = $request->getSession();		
@@ -119,9 +118,57 @@ class VotenmasseController extends Controller
 		if ($u == NULL) {
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
+		
+		$infos_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneByLogin($u);	
+		
+		$groupesUtilisateur_utilisateur_courant = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findByUtilisateur($infos_utilisateur->getId());
+		
+		foreach ($groupesUtilisateur_utilisateur_courant as $cle => $valeur) {
+			if (isset($groupes_utilisateur_courant)) {
+				$groupes_utilisateur_courant += $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Groupe')
+					->findById($valeur->getGroupe());
+			}
+			else {
+				$groupes_utilisateur_courant = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Groupe')
+					->findById($valeur->getGroupe());
+			}
+		}
+		
+		if (isset($groupes_utilisateur_courant)) {
+			$groupes_utilisateur_courant_a_ajouter = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findByAdministrateur($u);
+				
+			$taille_groupes_utilisateur_ou_ajouter = sizeof($groupes_utilisateur_courant);	
+				
+			foreach ($groupes_utilisateur_courant_a_ajouter as $cle => $valeur) {
+				$groupes_utilisateur_courant[$taille_groupes_utilisateur_ou_ajouter] = $valeur;
+				$taille_groupes_utilisateur_ou_ajouter++;
+			}
+		}
+		else {
+			$groupes_utilisateur_courant = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findByAdministrateur($u);
+		}
 	
 		$vote = new Vote;
-
+		
+		if ($groupes_utilisateur_courant != NULL) {
+			for ($i = 0; $i<sizeof($groupes_utilisateur_courant); $i++) {
+				$groupes[$groupes_utilisateur_courant[$i]->getNom()] = $groupes_utilisateur_courant[$i]->getNom();
+			}
+		}
+		else {
+			$groupes = NULL;
+		}
+			
 		$form = $this->createFormBuilder($vote)
 					 ->add('nom', 'text')
 					 ->add('texte', 'text')
@@ -133,7 +180,8 @@ class VotenmasseController extends Controller
 													"Vote privé" => "Vote privé"),
 												'multiple' => false,
 												'expanded' => false))
-					 ->add('groupeAssocie', 'text', array( 
+					 ->add('groupeAssocie', 'choice', array( 
+													'choices' => $groupes,
 													'required' => false,
 													'label' => 'Groupe associé'))
 					 ->add('choix1', 'text')
@@ -452,5 +500,882 @@ class VotenmasseController extends Controller
 		$session->invalidate();
 			
 		return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+	}
+	
+	public function administrationAction() {
+		// On récupère la requête
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		
+		if ($u != NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+	
+		// On récupère la requête
+		$request = $this->get('request');
+
+		// On vérifie qu'elle est de type POST
+		if ($request->getMethod() == 'POST') {
+			if (($request->request->get('mot_de_passe') == 'abcde98765') || ($request->request->get('connecte') == true)) {
+				$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findAll();
+					
+				$groupes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Groupe')
+					->findAll();
+					
+				$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					
+				foreach ($votes as $cle => $valeur) {
+					$createur = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findOneById($valeur->getCreateur());
+						
+					$createurs[$cle] = $createur->getLogin();
+				}
+			
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'vote_createurs' => $createurs));
+			}
+			else {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_administration'));
+			}
+		}
+		
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration_connexion.html.twig');
+	}
+	
+	public function votesAction() {
+		// On récupère la requête
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		
+		if ($u == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+	
+		// On récupère la requête
+		$request = $this->get('request');
+
+		// On vérifie qu'elle est de type POST
+		if ($request->getMethod() == 'POST') {
+			$en_cours = false;
+			$termine = false;
+			$public = false;
+			$reserve = false;
+			$prive = false;
+		
+			if (($request->request->get('type') == null) && ($request->request->get('etat') == null)) {
+				$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					
+				foreach ($votes as $cle => $valeur) {
+					$createur = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findOneById($valeur->getCreateur());
+						
+					$createurs[$cle] = $createur->getLogin();
+				}
+				
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+					'utilisateur' => $u,
+					'votes' => $votes,
+					'vote_createurs' => $createurs));
+			}
+			else if (($request->request->get('type') == null) && ($request->request->get('etat') != null)){
+				foreach ($request->request->get('etat') as $cle => $valeur) {
+					if ($valeur == 'en_cours') {
+						$en_cours = true;
+					}
+					if ($valeur == 'terminé') {
+						$termine = true;
+					}
+				}
+				
+				if ($en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+							->findOneById($valeur->getCreateur());
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+						'utilisateur' => $u,
+						'votes' => $votes,
+						'vote_createurs' => $createurs));
+				}
+				else if ($en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findByEtat(true);
+					
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+							->findOneById($valeur->getCreateur());
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+						'utilisateur' => $u,
+						'votes' => $votes,
+						'vote_createurs' => $createurs));
+				}
+				else {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findByEtat(false);
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+			}
+			else if (($request->request->get('type') != null) && ($request->request->get('etat') == null)){
+				foreach ($request->request->get('type') as $cle => $valeur) {
+					if ($valeur == 'public') {
+						$public = true;
+					}
+					if ($valeur == 'réservé') {
+						$reserve = true;
+					}
+					if ($valeur == 'privé') {
+						$prive = true;
+					}
+				}
+				
+				foreach ($request->request->get('type') as $cle => $valeur) {
+					if ($valeur == 'public') {
+						$public = true;
+					}
+					if ($valeur == 'réservé') {
+						$reserve = true;
+					}
+					if ($valeur == 'privé') {
+						$prive = true;
+					}
+				}
+				
+				if ($public == true && $reserve == true && $prive == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+							->findOneById($valeur->getCreateur());
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+						'utilisateur' => $u,
+						'votes' => $votes,
+						'vote_createurs' => $createurs));
+				}
+				else if ($public == true && $reserve == true && $prive == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote réservé aux inscrits')));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote privé')));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote réservé aux inscrits','Vote privé')));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote public'));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote réservé aux inscrits'));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote privé'));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+			}
+			else {
+				foreach ($request->request->get('type') as $cle => $valeur) {
+					if ($valeur == 'public') {
+						$public = true;
+					}
+					if ($valeur == 'réservé') {
+						$reserve = true;
+					}
+					if ($valeur == 'privé') {
+						$prive = true;
+					}
+				}
+				
+				foreach ($request->request->get('etat') as $cle => $valeur) {
+					if ($valeur == 'en_cours') {
+						$en_cours = true;
+					}
+					if ($valeur == 'terminé') {
+						$termine = true;
+					}
+				}
+				
+				if ($public == true && $reserve == true && $prive == true && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+							->findOneById($valeur->getCreateur());
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+						'utilisateur' => $u,
+						'votes' => $votes,
+						'vote_createurs' => $createurs));
+				}
+				else if ($public == true && $reserve == true && $prive == false && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote réservé aux inscrits')));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == true && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote privé')));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == true && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote réservé aux inscrits','Vote privé')));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == false && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote public'));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == false && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote réservé aux inscrits'));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == false && $prive == true && $en_cours == true && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote privé'));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == true && $prive == true && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findByEtat(false);
+					
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+							->findOneById($valeur->getCreateur());
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+						'utilisateur' => $u,
+						'votes' => $votes,
+						'vote_createurs' => $createurs));
+				}
+				else if ($public == true && $reserve == true && $prive == false && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote réservé aux inscrits'), 'etat' => false));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == true && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote privé'), 'etat' => false));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == true && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote réservé aux inscrits','Vote privé'), 'etat' => false));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == false && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote public', 'etat' => false));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == false && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote réservé aux inscrits', 'etat' => false));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == false && $prive == true && $en_cours == false && $termine == true) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote privé', 'etat' => false));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == true && $prive == true && $en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findByEtat(true);
+					
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+							->findOneById($valeur->getCreateur());
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+						'utilisateur' => $u,
+						'votes' => $votes,
+						'vote_createurs' => $createurs));
+				}
+				else if ($public == true && $reserve == true && $prive == false && $en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote réservé aux inscrits'), 'etat' => true));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == true && $en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote public','Vote privé'), 'etat' => true));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == true && $en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => array('Vote réservé aux inscrits','Vote privé'), 'etat' => true));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == true && $reserve == false && $prive == false && $en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote public', 'etat' => true));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else if ($public == false && $reserve == true && $prive == false && $en_cours == true && $termine == false) {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote réservé aux inscrits', 'etat' => true));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+				else {
+					$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findBy(array('type' => 'Vote privé', 'etat' => true));
+					
+					if ($votes != NULL) {
+						foreach ($votes as $cle => $valeur) {
+							$createur = $this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+								->findOneById($valeur->getCreateur());
+								
+							$createurs[$cle] = $createur->getLogin();
+						}
+						
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u,
+							'votes' => $votes,
+							'vote_createurs' => $createurs));
+					}
+					else {
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+							'utilisateur' => $u));
+					}
+				}
+			}
+		}
+		$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					
+		foreach ($votes as $cle => $valeur) {
+			$createur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneById($valeur->getCreateur());
+				
+			$createurs[$cle] = $createur->getLogin();
+		}
+		
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+			'utilisateur' => $u,
+			'votes' => $votes,
+			'vote_createurs' => $createurs));
 	}
 }

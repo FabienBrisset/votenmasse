@@ -33,3 +33,11 @@ votenmasse_votenmasse_creation_groupe:
 votenmasse_votenmasse_administration:
    pattern: /administration
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:administration }
+
+votenmasse_votenmasse_forum:
+   pattern: /forum
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:forum }
+
+votenmasse_votenmasse_commentaire:
+   pattern: /commentaire
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire }

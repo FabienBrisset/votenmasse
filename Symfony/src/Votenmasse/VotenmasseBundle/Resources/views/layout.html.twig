@@ -15,7 +15,7 @@
 				<li><button style = "margin-right: 5px" class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Accueil</a></button>
 				<button style = "margin-right: 5px" class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_votes') }}">Votes</a></button>
 				<button style = "margin-right: 5px" class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Résultats</a></button>
-				<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Forum</a></button>
+				<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_forum') }}">Forum</a></button>
 				{% if utilisateur is not defined %}
 					<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
 						<span style = "float: right; margin-top: 10px;">Pseudo 

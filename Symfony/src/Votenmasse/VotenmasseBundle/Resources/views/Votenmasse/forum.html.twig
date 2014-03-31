@@ -1,0 +1,27 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Forum 
+{% endblock %}
+
+{% block votenmasse_body %}
+
+<table class="table">
+		<tr>
+			<td>
+				<div class="well">
+					<h2 id = "titre_formulaire" align = "center"><b>Bienvenue sur le Forum</b></h2>
+					<center>
+						<h4><b>Veuillez choisir le vote</b></h4><br>
+						
+								{% for item in vote %}
+ 							   <a href="{{ path('votenmasse_votenmasse_commentaire', { 'nomVote': item }) }}">Lien vers le vote: {{item}} </a></br>
+								{% endfor %}
+						
+				</div>
+			</td>
+		</tr>
+		
+	</table>
+
+{% endblock %}

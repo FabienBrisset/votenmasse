@@ -1,5 +1,0 @@
-_assetic:
-    resource: .
-    type: assetic
-_app:
-    resource: 'C:/wamp/www/Votenmasse_Commun/Symfony/app/config/routing_dev.yml'

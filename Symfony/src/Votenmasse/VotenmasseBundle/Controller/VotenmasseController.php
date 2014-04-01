@@ -1379,23 +1379,720 @@ class VotenmasseController extends Controller
 			'utilisateur' => $u,
 			'votes' => $votes,
 			'vote_createurs' => $createurs));
-       
 	}
-	public function forumAction()
-	{
+	
+	public function afficherVoteAction($vote = null) {
+		$request = $this->get('request');
+		
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		
+		if ($u == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		if ($request->getMethod() != 'POST') {
+			$session->set('vote', $vote); 
+		}
+		
+		if ($vote == null && $session->get('vote') == null) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+		}
+		else {
+			$utilisateur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneByLogin($u);
+			
+			if ($vote != null) {
+				$infos_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findOneById($vote);
+			}
+			else {
+				$infos_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findOneById($session->get('vote'));
+			}
+				
+			$avis_existe_deja = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+				->findOneBy(array('utilisateur' => $utilisateur, 'vote' => $infos_vote));
+				
+			if($avis_existe_deja) {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+			}
+		
+			$donner_avis = new DonnerAvis;
+				
+			if ($infos_vote->getChoix3() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix4() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix5() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix6() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->add('choix5', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix7() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->add('choix5', 'text', array(
+												'mapped' => false))
+						 ->add('choix6', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix8() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->add('choix5', 'text', array(
+												'mapped' => false))
+						 ->add('choix6', 'text', array(
+												'mapped' => false))
+						 ->add('choix7', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix9() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->add('choix5', 'text', array(
+												'mapped' => false))
+						 ->add('choix6', 'text', array(
+												'mapped' => false))
+						 ->add('choix7', 'text', array(
+												'mapped' => false))
+						 ->add('choix8', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else if ($infos_vote->getChoix10() == NULL) {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->add('choix5', 'text', array(
+												'mapped' => false))
+						 ->add('choix6', 'text', array(
+												'mapped' => false))
+						 ->add('choix7', 'text', array(
+												'mapped' => false))
+						 ->add('choix8', 'text', array(
+												'mapped' => false))
+						 ->add('choix9', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+			else {
+				$form = $this->createFormBuilder($donner_avis)
+						 ->add('choix1', 'text', array(
+												'mapped' => false))
+						 ->add('choix2', 'text', array(
+												'mapped' => false))
+						 ->add('choix3', 'text', array(
+												'mapped' => false))
+						 ->add('choix4', 'text', array(
+												'mapped' => false))
+						 ->add('choix5', 'text', array(
+												'mapped' => false))
+						 ->add('choix6', 'text', array(
+												'mapped' => false))
+						 ->add('choix7', 'text', array(
+												'mapped' => false))
+						 ->add('choix8', 'text', array(
+												'mapped' => false))
+						 ->add('choix9', 'text', array(
+												'mapped' => false))
+						 ->add('choix10', 'text', array(
+												'mapped' => false))
+						 ->getForm();
+			}
+
+			// On vérifie qu'elle est de type POST
+			if ($request->getMethod() == 'POST') {
+			  $session->set('vote', null);
+			
+			  $avis = new DonnerAvis;
+			  if ($request->request->get("form")['choix1'] == '1') {
+				$avis->setChoix1($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '1') {
+				$avis->setChoix1($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '1') {
+					$avis->setChoix1($infos_vote->getChoix9());
+				}
+			  }
+			 if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '1') {
+				$avis->setChoix1($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '2') {
+				$avis->setChoix2($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '2') {
+				$avis->setChoix2($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '2') {
+					$avis->setChoix2($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '2') {
+				$avis->setChoix2($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '3') {
+				$avis->setChoix3($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '3') {
+				$avis->setChoix3($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '3') {
+					$avis->setChoix3($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '3') {
+				$avis->setChoix3($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '4') {
+				$avis->setChoix4($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '4') {
+				$avis->setChoix4($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix3());
+				}
+			  }
+			 if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '4') {
+					$avis->setChoix4($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '4') {
+				$avis->setChoix4($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '5') {
+				$avis->setChoix5($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '5') {
+				$avis->setChoix5($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '5') {
+					$avis->setChoix5($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '5') {
+				$avis->setChoix5($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '6') {
+				$avis->setChoix6($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '6') {
+				$avis->setChoix6($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '6') {
+					$avis->setChoix6($infos_vote->getChoix9());
+				}
+			  }
+			   if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '6') {
+				$avis->setChoix6($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '7') {
+				$avis->setChoix7($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '7') {
+				$avis->setChoix7($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '7') {
+					$avis->setChoix7($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '7') {
+				$avis->setChoix7($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '8') {
+				$avis->setChoix8($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '8') {
+				$avis->setChoix8($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '8') {
+					$avis->setChoix8($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '8') {
+				$avis->setChoix8($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '9') {
+				$avis->setChoix9($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '9') {
+				$avis->setChoix9($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '9') {
+					$avis->setChoix9($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '9') {
+				$avis->setChoix2($infos_vote->getChoix10());
+				}
+			  }
+			  
+			  if ($request->request->get("form")['choix1'] == '10') {
+				$avis->setChoix10($infos_vote->getChoix1());
+			  }
+			  if ($request->request->get("form")['choix2'] == '10') {
+				$avis->setChoix10($infos_vote->getChoix2());
+			  }
+			  if (isset($request->request->get("form")['choix3'])) {
+				if ($request->request->get("form")['choix3'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix3());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix4'])) {
+				if ($request->request->get("form")['choix4'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix4());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix5'])) {
+				if ($request->request->get("form")['choix5'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix5());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix6'])) {
+				if ($request->request->get("form")['choix6'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix6());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix7'])) {
+				if ($request->request->get("form")['choix7'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix7());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix8'])) {
+				if ($request->request->get("form")['choix8'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix8());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix9'])) {
+				if ($request->request->get("form")['choix9'] == '10') {
+					$avis->setChoix10($infos_vote->getChoix9());
+				}
+			  }
+			  if (isset($request->request->get("form")['choix10'])) {
+				if ($request->request->get("form")['choix10'] == '10') {
+				$avis->setChoix10($infos_vote->getChoix10());
+				}
+			  }
+				
+			  $avis->setVote($infos_vote);	
+			  $avis->setUtilisateur($utilisateur);
+				
+			  $em = $this->getDoctrine()->getManager();
+			  $em->persist($avis);
+			  $em->flush();
+			 
+			  // On redirige vers la page de connexion
+			  return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+			}
+
+			// À ce stade :
+			// - Soit la requête est de type GET, donc le visiteur vient d'arriver sur la page et veut voir le formulaire
+			// - Soit la requête est de type POST, mais le formulaire n'est pas valide, donc on l'affiche de nouveau
+
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+			  'form' => $form->createView(),
+			  'utilisateur' => $u,
+			  'vote_id' => $vote,
+			  'vote_nom' => $infos_vote->getNom(),
+			  'vote_texte' => $infos_vote->getTexte(),
+			  'choix1' => $infos_vote->getChoix1(),
+			  'choix2' => $infos_vote->getChoix2(),
+			  'choix3' => $infos_vote->getChoix3(),
+			  'choix4' => $infos_vote->getChoix4(),
+			  'choix5' => $infos_vote->getChoix5(),
+			  'choix6' => $infos_vote->getChoix6(),
+			  'choix7' => $infos_vote->getChoix7(),
+			  'choix8' => $infos_vote->getChoix8(),
+			  'choix9' => $infos_vote->getChoix9(),
+			  'choix10' => $infos_vote->getChoix10()
+			));
+		}
+	}
+	
+	public function forumAction() {
         $request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
+		
 		$votes = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
 				->findAll();
+				
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
-					'votes' => $votes,
-					));
+					'votes' => $votes));
 	}
-	public function commentaireAction($nomV)
-	{
 	
+	public function commentaireAction($nomV) {
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
@@ -1403,22 +2100,20 @@ class VotenmasseController extends Controller
 		//$nomVote=$request->request->get('nomVote');
 		//$request->request->get("form")['nom']
 		
-		if ($request->getMethod() == 'POST') 
-		{
+		if ($request->getMethod() == 'POST') {
 			$form->bind($request);
 			$commantaireUti = new VoteCommentaireUtilisateur;
 			$commentaire_id=new Commentaire;
 			   //on recupere le texte du commentaire
 			$text=$request->request->get("form")['texteCommentaire'];
-			if($text!=NULL)
-		    {
+			if($text!=NULL) {
 				$commentaire_id->setTexteCommentaire($text);
 				$commantaireUti->setCommentaire($commentaire_id);
 				//on enregistre le commentaire
 				$em = $this->getDoctrine()->getManager();
 			    $em->persist($commantaire_id);
 			    $em->flush();
-				}
+			}
 			
 			$form = $this->createFormBuilder($commentaire_id)
 							 ->add('texteCommentaire', 'text')
@@ -1427,6 +2122,7 @@ class VotenmasseController extends Controller
 			$vote=$this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Vote')
 					->findOneByNom($nomV);
+					
 			if($vote!=NULL){
 				$commantaireUti->setVote($vote);
 			}
@@ -1435,10 +2131,10 @@ class VotenmasseController extends Controller
 			$utilisateur_id=$this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 				->findOneByLogin($u);
-			if($utilisateur_id!=NULL)
-			{
+				
+			if($utilisateur_id!=NULL) {
 				$commantaireUti->setUtilisateur($utilisateur_id);
-				}
+			}
 				
 			
 			// On l'enregistre notre objet $commentaireUtilisateur dans la base de données
@@ -1450,23 +2146,20 @@ class VotenmasseController extends Controller
 			$listeVote=$this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
 					->findOneByVote($vote);
-		$tableau=array();
-		if($listeVote !=NULL)
-		{
-			for ($i=0; $i <sizeof($listevote) ; $i++) { 
-				$tab=array(
-					'login'=>$listevote[$i]->getUtilisateur()->getLogin(),
-					'message'=>$listevote[$i]->getCommentaire()->getTexteCommentaire()
-					);
-				$tableau[]=$tab;
+			$tableau=array();
+			if($listeVote !=NULL) {
+				for ($i=0; $i <sizeof($listevote) ; $i++) { 
+					$tab=array(
+						'login'=>$listevote[$i]->getUtilisateur()->getLogin(),
+						'message'=>$listevote[$i]->getCommentaire()->getTexteCommentaire()
+						);
+					$tableau[]=$tab;
+				}
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
+								'tableau'=>$tableau));
 			}
-			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
-       						'tableau'=>$tableau));
 		}
-		}
-		
-		else
-		{
+		else {
 			$commentaire=new Commentaire;
 		    $form = $this->createFormBuilder($commentaire)
 							 ->add('texteCommentaire', 'text')
@@ -1475,34 +2168,21 @@ class VotenmasseController extends Controller
 					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
 					->find($nomV);
 				$tableau=array();
-				if($listeVote !=NULL)
-				{
+				if($listeVote !=NULL) {
 					for ($i=0; $i <sizeof($listevote) ; $i++) { 
 						$tab=array(
 							'login'=>$listevote[$i]->getUtilisateur()->getLogin(),
-							'message'=>$listevote[$i]->getCommentaire()->getTexteCommentaire()
-							);
+							'message'=>$listevote[$i]->getCommentaire()->getTexteCommentaire());
 						$tableau[]=$tab;
 						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
 		       						'tableau'=>$tableau));
 					}
 					
 			}
-			else
-			{
+			else {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
-		  					'form' => $form->createView(),
-		 
-								));
+		  					'form' => $form->createView()));
 			}
-		}
-		
-			
+		}	
 	}	
-				
-		
-       
-	
-
-
 }

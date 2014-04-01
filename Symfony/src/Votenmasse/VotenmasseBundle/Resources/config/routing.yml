@@ -26,6 +26,10 @@ votenmasse_votenmasse_votes:
     pattern: /liste/votes
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:votes }
 
+votenmasse_votenmasse_vote:
+    pattern: /vote/{vote}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:afficherVote, vote: null }
+
 votenmasse_votenmasse_creation_groupe:
     pattern: /creation/groupe
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:creationGroupe }

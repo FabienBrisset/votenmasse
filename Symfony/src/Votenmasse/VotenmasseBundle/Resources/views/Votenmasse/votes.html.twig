@@ -65,7 +65,7 @@
 								</tr>
 								{% set cpt = 0 %}
 								{% for vote in votes %}
-									<tr class = "liste_votes" onclick="document.location.href='lien.html'">
+									<tr class = "liste_votes" onclick="document.location.href='../vote/{{ vote.id }}'">
 											<td>
 												{% if vote.type is sameas('Vote public') %}
 													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
@@ -78,7 +78,7 @@
 												{% endif %}
 											</td>
 											<td>
-												<center>{{ vote.nom }}</a></center>
+												<center>{{ vote.nom }}</center>
 											</td>
 											<td>
 												<center>{{ vote.texte }} </center>

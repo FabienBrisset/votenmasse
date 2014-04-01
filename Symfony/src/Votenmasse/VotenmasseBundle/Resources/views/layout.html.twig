@@ -29,7 +29,7 @@
 					{% if utilisateur != NULL %}
 						<form action="{{ path('votenmasse_votenmasse_deconnexion') }}" method="post">
 							<span style = "float: right; margin-top: 10px; margin-right: 5px;"><b>{{ utilisateur }}</b>
-							<button class="btn btn-primary btn-mini" type="submit">Déconnexion <i class="icon-white icon-ok-sign"></i> </button></span>
+							<button style="margin-left: 10px" class="btn btn-primary btn-mini" type="submit">Déconnexion <i class="icon-white icon-ok-sign"></i> </button></span>
 						</form>
 					{% endif %}
 					{% if utilisateur == NULL %}

@@ -112,6 +112,12 @@ label[for=form_moderateur] {
 { 
    background-color: lightblue; 
 } 
+
+/* css affichage des votes */
+
+#affichage_vote #form_choix1, #affichage_vote #form_choix2, #affichage_vote #form_choix3, #affichage_vote #form_choix4, #affichage_vote #form_choix5, #affichage_vote #form_choix6, #affichage_vote #form_choix7, #affichage_vote #form_choix8, #affichage_vote #form_choix9, #affichage_vote #form_choix10 {
+	width: 15px;
+}
  
  /* css bootstrap twitter */
  

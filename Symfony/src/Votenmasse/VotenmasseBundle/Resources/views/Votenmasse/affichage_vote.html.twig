@@ -1,0 +1,138 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Vote {{ vote_id }}
+{% endblock %}
+
+{% block votenmasse_body %}
+
+	<table class="table">
+		<tr>
+			<td>
+				<div class="well">
+					<center>
+						<h3><b>{{ vote_nom }}</b></h3><br>
+					</center>
+					<form id = "affichage_vote" action="{{ path('votenmasse_votenmasse_vote') }}" method="post" {{ form_enctype(form) }}>
+						<center>
+							<h4>Description :<br></h4>{{ vote_texte }}<br><br>
+							<font color = "red">Classez par ordre préférentiel les différentes propositions</font><br><br>
+						</center>
+						<table>
+							<tr>
+								<td>
+									{{ form_errors(form.choix1) }}
+									{{ form_widget(form.choix1) }}
+								</td>
+								<td>
+									{{ choix1 }}
+								</td>
+							</tr>
+							<tr>
+								<td>
+									{{ form_errors(form.choix2) }}
+									{{ form_widget(form.choix2) }}
+								</td>
+								<td>
+									{{ choix2 }}
+								</td>
+							</tr>
+							{% if choix3 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix3) }}
+										{{ form_widget(form.choix3) }}
+									</td>
+									<td>
+										{{ choix3 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix4 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix4) }}
+										{{ form_widget(form.choix4) }}
+									</td>
+									<td>
+										{{ choix4 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix5 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix5) }}
+										{{ form_widget(form.choix5) }}
+									</td>
+									<td>
+										{{ choix5 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix6 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix6) }}
+										{{ form_widget(form.choix6) }}
+									</td>
+									<td>
+										{{ choix6 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix7 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix7) }}
+										{{ form_widget(form.choix7) }}
+									</td>
+									<td>
+										{{ choix7 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix8 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix8) }}
+										{{ form_widget(form.choix8) }}
+									</td>
+									<td>
+										{{ choix8 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix9 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix9) }}
+										{{ form_widget(form.choix9) }}
+									</td>
+									<td>
+										{{ choix9 }}
+									</td>
+								</tr>
+							{% endif %}
+							{% if choix10 is not null %}
+								<tr>
+									<td>
+										{{ form_errors(form.choix10) }}
+										{{ form_widget(form.choix10) }}
+									</td>
+									<td>
+										{{ choix10 }}
+									</td>
+								</tr>
+							{% endif %}
+						</table>
+						<center>
+							<button class="btn btn-primary btn-mini" type="submit">Valider <i class="icon-white icon-ok-sign"></i> </button>
+						</center>
+					</form>
+				</div>
+			</td>
+		</tr>
+	</table>
+
+{% endblock %}

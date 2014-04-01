@@ -35,6 +35,10 @@ class VoteCommentaireUtilisateur
      * @ORM\Column(name="dateCreation", type="datetime")
      */
     private $dateCreation;
+	
+	public function __construct() {
+		$this->dateCreation = date_create(date('Y-m-d'));
+	}
     
     public function setVote(\Votenmasse\VotenmasseBundle\Entity\Vote $vote)
     {
@@ -96,8 +100,5 @@ class VoteCommentaireUtilisateur
     public function getDateCreation()
     {
         return $this->dateCreation;
-    }
-    public function __construct() {
-        $this->dateCreation = date_create('1990-01-01');
     }
 }

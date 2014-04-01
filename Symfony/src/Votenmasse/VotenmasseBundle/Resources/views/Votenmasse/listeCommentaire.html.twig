@@ -1,7 +1,7 @@
 {% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
 
 {% block title %}
- {{ parent() }} - Forum 
+ {{ parent() }} - Forum - Vote {{ vote }}
 {% endblock %}
 
 {% block votenmasse_body %}
@@ -10,22 +10,22 @@
 		<tr>
 			<td>
 				<div class="well">
-					<h2 id = "titre_formulaire" align = "center"><b>Bienvenue sur le Forum</b></h2>
+					<h2 id = "titre_formulaire" align = "center"><b>Bienvenue sur le Forum</b></h2><br>
+					<h4 align = "center"><b>Vote {{ vote }} - {{ nom_vote }}</b></h4>
+					<h5 align = "center">{{ texte_vote }}</h5><br><br>
 					<center>
-					<form method="post" class="Inscription" {{ form_enctype(form) }}>
-						{{ form_widget(form) }}
-						<input type="submit" class="btn btn-primary" id="form_validatation" />
+						<form method="post" class="Inscription" {{ form_enctype(form) }}>
+							{{ form_widget(form) }}<br>
+							<input type="submit" class="btn btn-primary" id="form_validatation" />
 						</form>
-					{#
-						{% for item in tableau %}
- 						{item.login}}- {{item.message}}
-						{% endfor %}
+						<br><br>
 					
-					#}
-						
-						
-								
-						
+						{% if tableau is defined %}
+							{% for item in tableau %}
+								{{ item.login }} - {{ item.message }}<br>
+							{% endfor %}	
+						{% endif %}
+					</center>
 				</div>
 			</td>
 		</tr>

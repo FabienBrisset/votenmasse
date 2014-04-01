@@ -11,6 +11,7 @@ use Votenmasse\VotenmasseBundle\Entity\Groupe;
 use Votenmasse\VotenmasseBundle\Entity\GroupeUtilisateur;
 use Votenmasse\VotenmasseBundle\Entity\Commentaire;
 use Votenmasse\VotenmasseBundle\Entity\VoteCommentaireUtilisateur;
+use Votenmasse\VotenmasseBundle\Entity\DonnerAvis;
 
 class VotenmasseController extends Controller
 {

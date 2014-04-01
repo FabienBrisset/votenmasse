@@ -1385,7 +1385,7 @@ class VotenmasseController extends Controller
 		}
 		
 		if ($vote == null && $session->get('vote') == null) {
-			return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 		else {
 			$utilisateur = $this->getDoctrine()
@@ -1407,7 +1407,12 @@ class VotenmasseController extends Controller
 				->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
 				->findOneBy(array('utilisateur' => $utilisateur, 'vote' => $infos_vote));
 				
-			if($avis_existe_deja) {
+			$fin = $session->get('fin');
+				
+			if ($avis_existe_deja && $fin != NULL) {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $session->get('fin'), 'supp' => true)));
+			}
+			if ($avis_existe_deja && $fin == NULL) {
 				return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $vote)));
 			}
 		
@@ -1560,6 +1565,7 @@ class VotenmasseController extends Controller
 
 			// On vérifie qu'elle est de type POST
 			if ($request->getMethod() == 'POST') {
+			  $session->set('fin', $session->get('vote'));
 			  $session->set('vote', null);
 			
 			  $avis = new DonnerAvis;
@@ -2039,9 +2045,9 @@ class VotenmasseController extends Controller
 			  $em = $this->getDoctrine()->getManager();
 			  $em->persist($avis);
 			  $em->flush();
-			 
+			  
 			  // On redirige vers la page de connexion
-			  return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $vote)));
+			  return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $session->get('fin'), 'supp' => true)));
 			}
 
 			// À ce stade :
@@ -2086,7 +2092,7 @@ class VotenmasseController extends Controller
 					'utilisateur' => $u));
 	}
 	
-	public function commentaireAction($vote=null) {
+	public function commentaireAction($vote=null, $supp=false) {
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
@@ -2099,6 +2105,10 @@ class VotenmasseController extends Controller
 					
 		if ($u == NULL) {
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		if ($supp == true) {
+			$session->set('fin', null);
 		}
 		
 		if ($request->getMethod() != 'POST') {

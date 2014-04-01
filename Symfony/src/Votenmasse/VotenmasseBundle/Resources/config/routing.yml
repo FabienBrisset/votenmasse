@@ -43,5 +43,5 @@ votenmasse_votenmasse_forum:
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:forum }
 
 votenmasse_votenmasse_commentaire:
-   pattern: /commentaire/{vote}
-   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, vote: null }
+   pattern: /commentaire/{vote}/{supp}
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, vote: null, supp: null }

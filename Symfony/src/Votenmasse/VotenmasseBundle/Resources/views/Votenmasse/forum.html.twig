@@ -40,7 +40,7 @@
 								</tr>
 								{% set cpt = 0 %}
 								{% for vote in votes %}
-									<tr class = "liste_votes" onclick="document.location.href='{{ path('votenmasse_votenmasse_commentaire',{'nomV':vote.nom})}}'">
+									<tr class = "liste_votes" onclick="document.location.href='../commentaire/{{ vote.id }}'">
 											<td>
 												{% if vote.type is sameas('Vote public') %}
 													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>

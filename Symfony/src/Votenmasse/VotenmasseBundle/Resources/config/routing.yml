@@ -39,9 +39,9 @@ votenmasse_votenmasse_administration:
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:administration }
 
 votenmasse_votenmasse_forum:
-   pattern: /forum
+   pattern: /forum/listevotes
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:forum }
 
 votenmasse_votenmasse_commentaire:
    pattern: /commentaire/{nomV}
-   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire }
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, nomV: null }

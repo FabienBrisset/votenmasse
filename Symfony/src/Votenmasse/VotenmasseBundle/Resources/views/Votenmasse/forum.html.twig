@@ -1,27 +1,91 @@
 {% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
 
 {% block title %}
- {{ parent() }} - Forum 
+ {{ parent() }} - Votes
 {% endblock %}
 
 {% block votenmasse_body %}
 
-<table class="table">
+	<table class="table">
+		<legend><b>Liste des votes</b></legend>
 		<tr>
 			<td>
 				<div class="well">
-					<h2 id = "titre_formulaire" align = "center"><b>Bienvenue sur le Forum</b></h2>
-					<center>
-						<h4><b>Veuillez choisir le vote</b></h4><br>
-						
-								{% for item in vote %}
- 							   <a href="{{ path('votenmasse_votenmasse_commentaire', { 'nomVote': item }) }}">Lien vers le vote: {{item}} </a></br>
+					{% if votes is defined %}
+						{% if votes is not null %}
+							<table>
+								<tr>
+									<td>
+										<center><b>Type</b></center>
+									</td>
+									<td>
+										<center><b>Nom</b></center>
+									</td>
+									<td>
+										<center><b>Description</b></center>
+									</td>
+									<td>
+										<center><b>Date de création</b></center>
+									</td>
+									<td>
+										<center><b>Date de fin</b></center>
+									</td>
+									<td>
+										<center><b>Groupe associé</b></center>
+									</td>
+									<td>
+										<center><b>Etat</b></center>
+									</td>
+									
+								</tr>
+								{% set cpt = 0 %}
+								{% for vote in votes %}
+									<tr class = "liste_votes" onclick="document.location.href='{{ path('votenmasse_votenmasse_commentaire',{'nomV':vote.nom})}}'">
+											<td>
+												{% if vote.type is sameas('Vote public') %}
+													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+												{% endif %} 
+												{% if vote.type is sameas('Vote réservé aux inscrits') %}
+													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+												{% endif %}
+												{% if vote.type is sameas('Vote privé') %}
+													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+												{% endif %}
+											</td>
+											<td>
+												<center>{{ vote.nom }}</a></center>
+											</td>
+											<td>
+												<center>{{ vote.texte }} </center>
+											</td>
+											<td>
+												<center>{{ vote.dateDeCreation|date("d/m/y") }}</center>
+											</td>
+											<td>
+												<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
+											</td>
+											<td>
+												{% if vote.groupeAssocie is not null %}
+													<center>{{ vote.groupeAssocie }}</center>
+												{% endif %}
+												{% if vote.groupeAssocie is null %}
+													<center>Aucun</center>
+												{% endif %}
+											</td>
+											<td>
+												<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
+											</td>
+					
+											{% set cpt = cpt + 1 %}
+										
+									</tr>
 								{% endfor %}
-						
+							</table>
+						{% endif %}
+					{% endif %}
 				</div>
 			</td>
 		</tr>
-		
 	</table>
 
 {% endblock %}

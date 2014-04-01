@@ -39,5 +39,5 @@ votenmasse_votenmasse_forum:
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:forum }
 
 votenmasse_votenmasse_commentaire:
-   pattern: /commentaire
+   pattern: /commentaire/{nomV}
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire }

@@ -1383,68 +1383,73 @@ class VotenmasseController extends Controller
 	}
 	public function forumAction()
 	{
-		$liste_vote = $this->getDoctrine()
-			->getRepository('VotenmasseVotenmasseBundle:Vote')
-			->findAll();
-	    $nom_vote=array();
-	  	if ($liste_vote != NULL) {
-			for ($i = 0; $i<sizeof($liste_vote); $i++) {
-				$nom_vote[]=$liste_vote[$i]->getNom();
-			}
-            return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig',array(
-       						'vote'=>$nom_vote));
-           }
+        $request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
+					'votes' => $votes,
+					));
 	}
-	public function commentaireAction()
+	public function commentaireAction($nomV)
 	{
-       // On récupère la requête
+	
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
 		//$nomVote=$request->query->get('nomVote');
-		$nomVote=$request->request->get('nomVote');
+		//$nomVote=$request->request->get('nomVote');
 		//$request->request->get("form")['nom']
 		
-		//$nomVote sera passé en parametre et contient le nom du vote selectioné
-		$commantaireUti = new VoteCommentaireUtilisateur;
-		//$groupe = new Groupe;
-		$vote = new Vote;
-		$commentaire=new Commentaire;
-		$form = $this->createFormBuilder($commentaire)
+		if ($request->getMethod() == 'POST') 
+		{
+			$form->bind($request);
+			$commantaireUti = new VoteCommentaireUtilisateur;
+			$commentaire_id=new Commentaire;
+			   //on recupere le texte du commentaire
+			$text=$request->request->get("form")['texteCommentaire'];
+			if($text!=NULL)
+		    {
+				$commentaire_id->setTexteCommentaire($text);
+				$commantaireUti->setCommentaire($commentaire_id);
+				//on enregistre le commentaire
+				$em = $this->getDoctrine()->getManager();
+			    $em->persist($commantaire_id);
+			    $em->flush();
+				}
+			
+			$form = $this->createFormBuilder($commentaire_id)
 							 ->add('texteCommentaire', 'text')
 							 ->getForm();
-		$vote=$this->getDoctrine()
-			->getRepository('VotenmasseVotenmasseBundle:Vote')
-			->findOneByNom($nomVote);
-		$commantaireUti->setVote($vote);
-
-		$utilisateur=$this->getDoctrine()
-			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-			->findOneByLogin($u);
-		$commantaireUti->setUtilisateur($utilisateur);
 		
+			$vote=$this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findOneByNom($nomV);
+			if($vote!=NULL){
+				$commantaireUti->setVote($vote);
+			}
+				
+		
+			$utilisateur_id=$this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneByLogin($u);
+			if($utilisateur_id!=NULL)
+			{
+				$commantaireUti->setUtilisateur($utilisateur_id);
+				}
+				
 			
-		// On vérifie qu'elle est de type POST
-		if ($request->getMethod() == 'POST') {
-			$form->bind($request);
-	    	//on recupere le texte du commentaire
-			$texte=$request->request->get("form")['texteCommentaire'];
-			$commentaire->setTexteCommentaire($texte);
-			$commantaireUti->setCommentaire($commentaire);
 			// On l'enregistre notre objet $commentaireUtilisateur dans la base de données
 			$em = $this->getDoctrine()->getManager();
 			$em->persist($commantaireUti);
 			$em->flush();
 			// On redirige vers la page 
-			return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire'));
-			}
-
-		$form = $this->createFormBuilder($commentaire)
-							 ->add('texteCommentaire', 'text')
-							 ->getForm();
-		$listeVote=$this->getDoctrine()
-			->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
-			->find($nomVote);
+			//return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire'));
+			$listeVote=$this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findOneByVote($vote);
 		$tableau=array();
 		if($listeVote !=NULL)
 		{
@@ -1458,7 +1463,46 @@ class VotenmasseController extends Controller
 			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
        						'tableau'=>$tableau));
 		}
+		}
+		
+		else
+		{
+			$commentaire=new Commentaire;
+		    $form = $this->createFormBuilder($commentaire)
+							 ->add('texteCommentaire', 'text')
+							 ->getForm();
+			$listeVote=$this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->find($nomV);
+				$tableau=array();
+				if($listeVote !=NULL)
+				{
+					for ($i=0; $i <sizeof($listevote) ; $i++) { 
+						$tab=array(
+							'login'=>$listevote[$i]->getUtilisateur()->getLogin(),
+							'message'=>$listevote[$i]->getCommentaire()->getTexteCommentaire()
+							);
+						$tableau[]=$tab;
+						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
+		       						'tableau'=>$tableau));
+					}
+					
+			}
+			else
+			{
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+		  					'form' => $form->createView(),
+		 
+								));
+			}
+		}
+		
+			
+	}	
 				
-	}
+		
+       
+	
+
 
 }

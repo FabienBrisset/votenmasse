@@ -12,14 +12,16 @@
 				<div class="well">
 					<h2 id = "titre_formulaire" align = "center"><b>Bienvenue sur le Forum</b></h2>
 					<center>
-					<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-						<form method="post" class="Inscription" {{ form_enctype(form) }}>
+					<form method="post" class="Commentaire" {{ form_enctype(form) }}>
 						{{ form_widget(form) }}
-						<input type="submit" class="btn btn-primary" id="form_validatation" />
-						</form>
-						{% for tab in tableau %}
- 						{{tab.login}}: {{tab.message}}
-						{% endfor %}
+						
+						<input type="submit" class="btn btn-primary" id="commentaire_validatation" />
+					</form>
+
+						
+								{% for item in tableau %}
+ 							   {{item.login}}- {{item.message}}
+								{% endfor %}
 						
 				</div>
 			</td>

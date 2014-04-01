@@ -190,8 +190,8 @@ class appDevUrlMatcher extends Symfony\Bundle\FrameworkBundle\Routing\Redirectab
         }
 
         // votenmasse_votenmasse_commentaire
-        if ($pathinfo === '/commentaire') {
-            return array (  '_controller' => 'Votenmasse\\VotenmasseBundle\\Controller\\VotenmasseController::commentaireAction',  '_route' => 'votenmasse_votenmasse_commentaire',);
+        if (0 === strpos($pathinfo, '/commentaire') && preg_match('#^/commentaire/(?P<nomV>[^/]++)$#s', $pathinfo, $matches)) {
+            return $this->mergeDefaults(array_replace($matches, array('_route' => 'votenmasse_votenmasse_commentaire')), array (  '_controller' => 'Votenmasse\\VotenmasseBundle\\Controller\\VotenmasseController::commentaireAction',));
         }
 
         // _welcome

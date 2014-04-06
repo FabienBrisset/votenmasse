@@ -6618,6 +6618,40 @@ class VotenmasseController extends Controller {
 					}
 					
 					$invite = $session->get('invite');
+					
+					if ($invite == null) {
+							  $utilisateur = new Utilisateur;
+							  
+							  $pass = "abcdefghijklmnopqrstuvwxyz987654321012345643198536985prokfjaidinend";
+							  $pass_md5 = md5($pass);
+								
+							  $utilisateur->setMotDePasse($pass_md5);
+							  $date = date_create(date('Y-m-d'));
+							  
+							  $utilisateur->setDateDeNaissance($date);
+							  $utilisateur->setSexe('H');
+								
+							  $em = $this->getDoctrine()->getEntityManager();
+							  $req_max_id = $em->createQuery(
+								'SELECT MAX(u.id) AS max_id
+								FROM VotenmasseVotenmasseBundle:Utilisateur u');
+
+							  $max_id = $req_max_id->getResult();
+
+							  $base = "Invité_";
+							  $num = $max_id[0]["max_id"] + 1;
+							  $invite = $base.$num;
+							  
+							  $utilisateur->setMail($invite."@fake.com");
+							  $utilisateur->setPrenom($invite);
+							  $utilisateur->setNom($invite);
+							  $utilisateur->setLogin($invite);
+							  
+							  $session->set('invite', $invite);
+							  
+							  $em->persist($utilisateur);
+							  $em->flush();
+					}
 				
 					$utilisateur_id=$this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')

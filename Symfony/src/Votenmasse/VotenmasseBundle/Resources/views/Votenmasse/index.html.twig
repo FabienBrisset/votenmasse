@@ -15,22 +15,84 @@
 	{% endif %}
 	<table class="table">
 		<tr>
-			<td>
-				<div class="well">
-					
-				</div>
-			</td>
+		
+		
+			{% if utilisateur is defined %}
+				{% if utilisateur is not null %}
+					<tr>
+						<td rowspan = "2">
+							<div class="well">
+								<div id="accordion">
+								  <h3>Groupes</h3>
+								  <div>
+									<p><a href = "Mon premier groupe">Mon premier groupe (membre ou admin ou modo)</a></p>
+									<p><a href = "Mon second groupe">Mon second groupe (membre ou admin ou modo)</a></p>
+								  </div>
+								  <h3>Votes</h3>
+								  <div>
+									<p><a href = "Mon premier vote">Mon premier vote (membre ou admin ou modo)</a></p>
+									<p><a href = "Mon second vote">Mon second vote (membre ou admin ou modo)</a></p>
+								  </div>
+								  <h3>Modération de groupes</h3>
+								  <div>
+									<p><a href = "Mon premier groupe à modérer">Mon premier groupe à modérer (membre ou admin ou modo)</a></p>
+									<p><a href = "Mon second groupe à modérer">Mon second groupe à modérer (membre ou admin ou modo)</a></p>
+								  </div>
+								  <h3>Modération de votes</h3>
+								  <div>
+									<p><a href = "Mon premier vote à modérer">Mon premier vote à modérer (membre ou admin ou modo)</a></p>
+									<p><a href = "Mon second vote à modérer">Mon second vote à modérer (membre ou admin ou modo)</a></p>
+								  </div>
+								</div>
+							</div>
+						</td>
+						<td>
+							<div class="well">
+								Zone pour les 3 derniers votes
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<div class="well">
+								Zone pour les 3 derniers groupes
+							</div>
+						</td>
+					</tr>
+				{% endif %}
+			{% endif %}
+			
+			
+		
 			{% if utilisateur is defined %}
 				{% if utilisateur is null %}
+					<td>
+						<div class="well">
+							Zone pour les 3 derniers votes
+						</div>
+					</td>
+				{% endif %}
+			{% endif %}
+			{% if utilisateur is not defined %}
 				<td>
 					<div class="well">
-						<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-						<form method="post" class="Inscription" {{ form_enctype(form) }}>
-						{{ form_widget(form) }}
-						<input type="submit" class="btn btn-primary" id="form_validatation" />
-						</form>
+						Zone pour les 3 derniers votes
 					</div>
 				</td>
+			{% endif %}
+			
+			
+			{% if utilisateur is defined %}
+				{% if utilisateur is null %}
+					<td>
+						<div class="well">
+							<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
+							<form method="post" class="Inscription" {{ form_enctype(form) }}>
+							{{ form_widget(form) }}
+							<input type="submit" class="btn btn-primary" id="form_validatation" />
+							</form>
+						</div>
+					</td>
 				{% endif %}
 			{% endif %}
 			{% if utilisateur is not defined %}

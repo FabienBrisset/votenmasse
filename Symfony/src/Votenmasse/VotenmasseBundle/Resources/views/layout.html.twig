@@ -12,36 +12,45 @@
 		<br>
 		<div>
 			<ul class="nav nav-pills nav-stacked">
-				<li><button style = "margin-right: 5px" class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Accueil</a></button>
-				<button style = "margin-right: 5px" class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_votes') }}">Votes</a></button>
-				<button style = "margin-right: 5px" class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_accueil') }}">Résultats</a></button>
-				<button class="btn btn-inverse btn-large"><a href="{{ path('votenmasse_votenmasse_forum') }}">Forum</a></button>
-				{% if utilisateur is not defined %}
-					<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
-						<span style = "float: right; margin-top: 10px;">Pseudo 
-						<input style = "margin-right: 10px" class="input-mini" type="text" id="login" name="login" />
-						Mot de passe 
-						<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />
-						<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
+				<li>
+					<form action="{{ path('votenmasse_votenmasse_index') }}" method="post">
+						<input type = "submit" value = "Accueil" style = "margin-right: 5px; color: #0000ff;" class="btn btn-inverse btn-large">
 					</form>
-				{% endif %}
-				{% if utilisateur is defined %}
-					{% if utilisateur != NULL %}
-						<form action="{{ path('votenmasse_votenmasse_deconnexion') }}" method="post">
-							<span style = "float: right; margin-top: 10px; margin-right: 5px;"><b>{{ utilisateur }}</b>
-							<button style="margin-left: 10px" class="btn btn-primary btn-mini" type="submit">Déconnexion <i class="icon-white icon-ok-sign"></i> </button></span>
-						</form>
-					{% endif %}
-					{% if utilisateur == NULL %}
+					<form action="{{ path('votenmasse_votenmasse_votes') }}" method="post">
+						<input type = "submit" value = "Votes" style = "margin-right: 5px; color: #0000ff;" class="btn btn-inverse btn-large">
+					</form>
+					<form action="{{ path('votenmasse_votenmasse_resultats') }}" method="post">
+						<input type = "submit" value = "Résultats" style = "margin-right: 5px; color: #0000ff;" class="btn btn-inverse btn-large">
+					</form>
+					<form action="{{ path('votenmasse_votenmasse_forum') }}" method="post">
+						<input type = "submit" value = "Forum" style = "margin-right: 5px; color: #0000ff;" class="btn btn-inverse btn-large">
+					</form>
+					{% if utilisateur is not defined %}
 						<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
 							<span style = "float: right; margin-top: 10px;">Pseudo 
-							<input class="input-mini" type="text" id="login" name="login" style = "margin-right: 10px" />
+							<input style = "margin-right: 10px" class="input-mini" type="text" id="login" name="login" />
 							Mot de passe 
 							<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />
 							<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
 						</form>
 					{% endif %}
-				{% endif %}
+					{% if utilisateur is defined %}
+						{% if utilisateur != NULL %}
+							<form action="{{ path('votenmasse_votenmasse_deconnexion') }}" method="post">
+								<span style = "float: right; margin-top: 10px; margin-right: 5px;"><b>{{ utilisateur }}</b>
+								<button style="margin-left: 10px" class="btn btn-primary btn-mini" type="submit">Déconnexion <i class="icon-white icon-ok-sign"></i> </button></span>
+							</form>
+						{% endif %}
+						{% if utilisateur == NULL %}
+							<form action="{{ path('votenmasse_votenmasse_connexion') }}" method="post">
+								<span style = "float: right; margin-top: 10px;">Pseudo 
+								<input class="input-mini" type="text" id="login" name="login" style = "margin-right: 10px" />
+								Mot de passe 
+								<input class="input-mini" type="password" id="mot_de_passe" name="mot_de_passe" style = "margin-right: 10px;" />
+								<button class="btn btn-primary btn-mini" type="submit">Connexion <i class="icon-white icon-ok-sign"></i> </button></span>
+							</form>
+						{% endif %}
+					{% endif %}
 				</li>
 			</ul>
 		</div>

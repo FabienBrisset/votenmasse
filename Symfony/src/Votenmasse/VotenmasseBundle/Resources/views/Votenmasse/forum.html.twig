@@ -7,7 +7,32 @@
 {% block votenmasse_body %}
 
 	<table class="table">
-		<legend><b>Liste des votes</b></legend>
+		<legend><b>Forum</b></legend>
+		{% if utilisateur is defined %}
+			<tr>
+				<td>
+					<div class="well">
+						<center>
+							<h4><b>Filtrer</b></h4><br>
+							<form action="{{ path('votenmasse_votenmasse_forum') }}" method="post">
+								Etat 
+								<select style = "height:45px; margin-left:20px;" multiple name="etat[]">
+									<option value = "en_cours">En cours</option>
+									<option value = "termine">Terminé</option>
+								</select><br><br>
+								Type
+								<select style = "height:65px; margin-left:15px;" multiple name="type[]">
+									<option value = "public">Public</option>
+									<option value = "réservé">Réservé aux inscrits</option>
+									<option value = "privé">Privé</option>
+								</select><br><br>
+								<button class="btn btn-primary btn-mini" type="submit">Valider <i class="icon-white icon-ok-sign"></i> </button>
+							</form>
+						</center>
+					</div>
+				</td>
+			</tr>
+		{% endif %}
 		<tr>
 			<td>
 				<div class="well">
@@ -36,11 +61,14 @@
 									<td>
 										<center><b>Etat</b></center>
 									</td>
+									<td>
+										<center><b>Créateur</b></center>
+									</td>
 									
 								</tr>
 								{% set cpt = 0 %}
 								{% for vote in votes %}
-									<tr class = "liste_votes" onclick="document.location.href='../commentaire/{{ vote.id }}'">
+									<tr class = "liste_votes" onclick="document.location.href='../../commentaire/{{ vote.id }}'">
 											<td>
 												{% if vote.type is sameas('Vote public') %}
 													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
@@ -75,7 +103,9 @@
 											<td>
 												<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
 											</td>
-					
+											<td>
+												<center>{{ vote_createurs[cpt] }}</center>
+											</td>
 											{% set cpt = cpt + 1 %}
 										
 									</tr>

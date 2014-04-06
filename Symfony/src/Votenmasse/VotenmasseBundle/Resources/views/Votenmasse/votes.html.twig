@@ -7,30 +7,32 @@
 {% block votenmasse_body %}
 
 	<table class="table">
-		<legend><b>Liste des votes</b></legend>
-		<tr>
-			<td>
-				<div class="well">
-					<center>
-						<h4><b>Filtrer</b></h4><br>
-						<form action="{{ path('votenmasse_votenmasse_votes') }}" method="post">
-							Etat 
-							<select style = "height:45px; margin-left:20px;" multiple name="etat[]">
-								<option value = "en_cours">En cours</option>
-								<option value = "termine">Terminé</option>
-							</select><br><br>
-							Type
-							<select style = "height:65px; margin-left:15px;" multiple name="type[]">
-								<option value = "public">Public</option>
-								<option value = "réservé">Réservé aux inscrits</option>
-								<option value = "privé">Privé</option>
-							</select><br><br>
-							<button class="btn btn-primary btn-mini" type="submit">Valider <i class="icon-white icon-ok-sign"></i> </button>
-						</form>
-					</center>
-				</div>
-			</td>
-		</tr>
+		<legend><b>Votes</b></legend>
+		{% if utilisateur is defined %}
+			<tr>
+				<td>
+					<div class="well">
+						<center>
+							<h4><b>Filtrer</b></h4><br>
+							<form action="{{ path('votenmasse_votenmasse_votes') }}" method="post">
+								Etat 
+								<select style = "height:45px; margin-left:20px;" multiple name="etat[]">
+									<option value = "en_cours">En cours</option>
+									<option value = "termine">Terminé</option>
+								</select><br><br>
+								Type
+								<select style = "height:65px; margin-left:15px;" multiple name="type[]">
+									<option value = "public">Public</option>
+									<option value = "réservé">Réservé aux inscrits</option>
+									<option value = "privé">Privé</option>
+								</select><br><br>
+								<button class="btn btn-primary btn-mini" type="submit">Valider <i class="icon-white icon-ok-sign"></i> </button>
+							</form>
+						</center>
+					</div>
+				</td>
+			</tr>
+		{% endif %}
 		<tr>
 			<td>
 				<div class="well">

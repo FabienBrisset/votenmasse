@@ -11,8 +11,13 @@
 			<td>
 				<div class="well">
 					<h2 id = "titre_formulaire" align = "center"><b>Bienvenue sur le Forum</b></h2><br>
-					<h4 align = "center"><b>Vote {{ vote }} - {{ nom_vote }}</b></h4>
-					<h5 align = "center">{{ texte_vote }}</h5><br><br>
+					<h4 align = "center"><b>Vote {{ vote }} - {{ nom_vote }}</b></h4><br>
+					<h4 align = "center"><b>Description : </b></h4>
+					<h5 align = "center">{{ texte_vote }}</h5><br>
+					{% if groupe_associe is not null %}
+						<h5 align = "center">{{ groupe_associe }}</h5><br>
+					{% endif %}
+					<br>
 					<center>
 						<form method="post" class="Inscription" {{ form_enctype(form) }}>
 							{{ form_widget(form) }}<br>
@@ -21,9 +26,32 @@
 						<br><br>
 					
 						{% if tableau is defined %}
+							<table class="table">
+								<tr>
+									<td>
+										<center><b>Date de création</b></center>
+									</td>
+									<td>
+										<center><b>Créateur</b></center>
+									</td>
+									<td>
+										<center><b>Message</b></center>
+									</td>
+								</tr>
 							{% for item in tableau %}
-								{{ item.login }} - {{ item.message }}<br>
-							{% endfor %}	
+								<tr>
+									<td>
+										<center>{{ item.dateCreation|date("d/m/y") }}</center>
+									</td>
+									<td>
+										<center>{{ item.login }}</center>
+									</td>
+									<td>
+										<center>{{ item.message }}</center>
+									</td>
+								</tr>			
+							{% endfor %}
+							</table>
 						{% endif %}
 					</center>
 				</div>

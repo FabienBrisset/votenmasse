@@ -1,0 +1,94 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Votes - Resultats
+{% endblock %}
+
+{% block votenmasse_body %}
+
+	<table class="table">
+		{% if utilisateur is defined %}
+			<legend><b>Mes votes terminés</b></legend>
+		{% endif %}
+		{% if utilisateur is not defined %}
+			<legend><b>Votes terminés</b></legend>
+		{% endif %}
+		<tr>
+			<td>
+				<div class="well">
+					{% if votes is defined %}
+						{% if votes is not null %}
+							<table>
+								<tr>
+									<td>
+										<center><b>Type</b></center>
+									</td>
+									<td>
+										<center><b>Nom</b></center>
+									</td>
+									<td>
+										<center><b>Description</b></center>
+									</td>
+									<td>
+										<center><b>Date de création</b></center>
+									</td>
+									<td>
+										<center><b>Date de fin</b></center>
+									</td>
+									<td>
+										<center><b>Groupe associé</b></center>
+									</td>
+									<td>
+										<center><b>Créateur</b></center>
+									</td>
+								</tr>
+								{% set cpt = 0 %}
+								{% for vote in votes %}
+									<tr class = "liste_votes" onclick="document.location.href='vote/{{ vote.id }}'">
+											<td>
+												{% if vote.type is sameas('Vote public') %}
+													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+												{% endif %} 
+												{% if vote.type is sameas('Vote réservé aux inscrits') %}
+													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+												{% endif %}
+												{% if vote.type is sameas('Vote privé') %}
+													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+												{% endif %}
+											</td>
+											<td>
+												<center>{{ vote.nom }}</center>
+											</td>
+											<td>
+												<center>{{ vote.texte }} </center>
+											</td>
+											<td>
+												<center>{{ vote.dateDeCreation|date("d/m/y") }}</center>
+											</td>
+											<td>
+												<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
+											</td>
+											<td>
+												{% if vote.groupeAssocie is not null %}
+													<center>{{ vote.groupeAssocie }}</center>
+												{% endif %}
+												{% if vote.groupeAssocie is null %}
+													<center>Aucun</center>
+												{% endif %}
+											</td>
+											<td>
+												<center>{{ vote_createurs[cpt] }}</center>
+											</td>
+											{% set cpt = cpt + 1 %}
+										</a>
+									</tr>
+								{% endfor %}
+							</table>
+						{% endif %}
+					{% endif %}
+				</div>
+			</td>
+		</tr>
+	</table>
+
+{% endblock %}

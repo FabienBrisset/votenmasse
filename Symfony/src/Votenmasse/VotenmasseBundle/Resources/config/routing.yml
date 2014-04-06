@@ -26,6 +26,10 @@ votenmasse_votenmasse_votes:
     pattern: /liste/votes
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:votes }
 
+votenmasse_votenmasse_resultats:
+    pattern: /resultats
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:resultats }
+
 votenmasse_votenmasse_vote:
     pattern: /vote/{vote}
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:afficherVote, vote: null }
@@ -39,7 +43,7 @@ votenmasse_votenmasse_administration:
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:administration }
 
 votenmasse_votenmasse_forum:
-   pattern: /forum/listevotes
+   pattern: /forum/liste/votes
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:forum }
 
 votenmasse_votenmasse_commentaire:

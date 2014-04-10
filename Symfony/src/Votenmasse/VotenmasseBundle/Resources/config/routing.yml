@@ -49,3 +49,7 @@ votenmasse_votenmasse_forum:
 votenmasse_votenmasse_commentaire:
    pattern: /commentaire/{vote}/{supp}
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, vote: null, supp: null }
+
+votenmasse_votenmasse_affichage_groupe:
+    pattern: /groupe/{groupe}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:afficherGroupe, groupe: null }

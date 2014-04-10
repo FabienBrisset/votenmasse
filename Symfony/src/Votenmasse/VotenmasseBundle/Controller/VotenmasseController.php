@@ -499,9 +499,39 @@ class VotenmasseController extends Controller {
 				$session->start();
 			
 				$session->set('utilisateur', $request->request->get('login')); 
-				
-				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
-					'utilisateur' => $session->get('utilisateur')));
+				//je recupere tous les votes
+ 				$votes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findAll();
+					//on recupere tous les groupe
+				$groupes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Groupe')
+					->findAll();
+			
+				if ($votes != NULL) {
+					foreach ($votes as $cle => $valeur) {
+						$createur = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findOneById($valeur->getCreateur());
+						//if($createur!=NULL)
+						$createurs[$cle] = $createur->getLogin();
+					}		
+				}
+				/*if ($groupes!=NULL) {
+					foreach ($groupes as $cle => $valeur) {
+						$administrateur = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findOneByLogin($valeur->getAdministrateur());
+						//if($createur!=NULL)
+						$administrateurs[$cle] = $administrateur->getLogin();
+						}
+				}*/
+						
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+					'utilisateur' => $session->get('utilisateur'),
+					'votes' => $votes,
+					'vote_createurs' => $createurs,
+					'groupes' => $groupes));
 			}
 			// Sinon on redirige l'utilisateur vers la page de connexion
 			else {
@@ -6744,4 +6774,139 @@ class VotenmasseController extends Controller {
 			}
 		}	
 	}
+
+
+public function afficherGroupeAction($groupe=null) {
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		$utilisateur=$this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($u);
+		
+		//if ($request->getMethod() == 'GET') {
+		/*if ($u==null) {
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+							'utilisateur' => $u,
+							));		
+		}else{*/
+				$groupeU = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+					->findBy(array("utilisateur" => $utilisateur->getId(), "groupe" =>$groupe));
+
+		if ($groupeU==NULL) //l'utilisateur n'est pas membre du groupe//ni moderateur//ni administrateur
+			{
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+							'utilisateur' => $u,
+							));		
+			}else
+				{//l'utilisateur est membre du groupe
+					//on recupere le groupe associé
+					$groupe_associe= $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findById($groupeU->getGroupe());
+					//on recupere l'administrateur du groupe
+					$adm= $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findOneByLogin($groupe_associe->getAdministrateur());//get administrateur renvoie le Login et on recupere l'utilisateur correspondant
+					if ($groupeU->getUtilisateur()==$adm->getId())//il est l'aministrateur du groupe
+					{
+						
+						
+						if ($groupeU->getModerateur()==true)//si il est en plus moderateur du groupe
+						{
+							//on recupere les id de tous les membres du groupe
+							$membres=$this->getDoctrine()
+								->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+								->findByGroupe($groupe);
+							//on recupere les votes associés au groupe
+							$liste_votes_associe=$this->getDoctrine()
+									->getRepository('VotenmasseVotenmasseBundle:Vote')
+									->findByGroupeAssocie($groupe_associe);
+							//on recupere les entités Utilisateurs correspondant
+							$liste_membres=array();
+							for ($i=0; $i <sizeof($membres); $i++) 
+							{ 
+								$liste_membres=$this->getDoctrine()
+									->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+									->findById($membres[$i]->getUtilisateur());
+							}
+							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
+							'utilisateur' => $u,
+							'liste_votes_associe' => $liste_votes_associe,
+							'liste_membres' => $liste_membres
+							));		
+						}else
+								{//il est juste administrateur
+									$membres=$this->getDoctrine()
+										->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+										->findByGroupe($groupe);
+									//on recupere les votes associés au groupe
+									$liste_votes_associe=$this->getDoctrine()
+										->getRepository('VotenmasseVotenmasseBundle:Vote')
+										->findByGroupeAssocie($groupe_associe);
+
+									//on recupere les entités Utilisateurs correspondant
+									$liste_membres=array();
+									for ($i=0; $i <sizeof($membres); $i++) 
+									{ 
+										$liste_membres=$this->getDoctrine()
+											->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+											->findById($membres[$i]->getUtilisateur());
+										$liste_votes_associe=$this->getDoctrine()
+											->getRepository('VotenmasseVotenmasseBundle:Vote')
+											->findByGroupeAssocie($groupe_associe);
+									}
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
+										'utilisateur' => $u,
+										'liste_votes_associe' => $liste_votes_associe,
+										'liste_membres' => $liste_membres
+										));		
+								}
+					}else//il n'est pas administrateur
+						{
+							if ($groupeU->getModerateur()==true)//si il est plus moderateur du groupe
+								{
+									$membres=$this->getDoctrine()
+										->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+										->findByGroupe($groupe);
+									//on recupere les entités Utilisateurs correspondant
+									$liste_membres=array();
+									for ($i=0; $i <sizeof($membres); $i++) 
+									{ 
+										$liste_membres=$this->getDoctrine()
+											->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+											->findById($membres[$i]->getUtilisateur());
+									}
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
+										'utilisateur' => $u,
+										//'liste_votes_associe' => $liste_votes_associe,
+										'liste_membres' => $liste_membres
+										));		
+								}else//il est juste membre du groupe
+						 				{
+						 					$membres=$this->getDoctrine()
+												->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+												->findByGroupe($groupe);
+											//on recupere les entités Utilisateurs correspondant
+											$liste_membres=array();
+											for ($i=0; $i <sizeof($membres); $i++) 
+											{ 
+												$liste_membres=$this->getDoctrine()
+													->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+													->findById($membres[$i]->getUtilisateur());
+											}
+											return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
+												'utilisateur' => $u,
+												//'liste_votes_associe' => $liste_votes_associe,
+												'liste_membres' => $liste_membres
+											));		
+						 				}
+
+						}
+				}
+			//}
+		}
+				
+
 }

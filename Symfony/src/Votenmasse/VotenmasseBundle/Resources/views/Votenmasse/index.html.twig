@@ -16,9 +16,24 @@
 	<table class="table">
 		<tr>
 		
-		
 			{% if utilisateur is defined %}
 				{% if utilisateur is not null %}
+					<tr>
+						<td colspan = "2">
+							<div class="well">
+								<ul class="nav nav-pills nav-stacked">
+									<li>
+										<form style = "margin-left: 150px;" action="{{ path('votenmasse_votenmasse_creation_vote') }}" method="get">
+											<input type = "submit" value = "Créer un nouveau vote" style = "margin-right: 5px; color: lightgreen;" class="btn btn-inverse btn-large">
+										</form>
+										<form style = "margin-left: 150px;" action="{{ path('votenmasse_votenmasse_creation_groupe') }}" method="get">
+											<input type = "submit" value = "Créer un nouveau groupe" style = "margin-right: 5px; color: lightgreen;" class="btn btn-inverse btn-large">
+										</form>
+									</li>
+								</ul>
+							</div>
+						</td>
+					</tr>
 					<tr>
 						<td rowspan = "2">
 							<div class="well">
@@ -27,128 +42,134 @@
 								  <div>
 									{% if groupes is defined %}
 										{% if groupes is not null %}
-										<table>
-										<tr>
-											<td>
-												<center><b>Type</b></center>
-											</td>
-											<td>
-												<center><b>Nom</b></center>
-											</td>
-											<td>
-												<center><b>Description</b></center>
-											</td>
-											<td>
-												<center><b>Administrateur</b></center>
-											</td>
-										</tr>
-										{% for groupe in groupes %}
-										<tr class = "liste_votes" onclick="document.location.href='../app_dev.php/groupe/{{ groupe.id }}'">
-											<td>
-												{% if groupe.etat is sameas('Groupe public') %}
-													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
-												{% endif %} 
-												{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
-													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
-												{% endif %}
-												{% if groupe.etat is sameas('Groupe privé') %}
-													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
-												{% endif %}
-											</td>
-											<td>
-												<center>{{ groupe.nom }}</center>
-											</td>
-											<td>
-												<center>{{ groupe.description }} </center>
-											</td>
-											<td>
-											<center>{{ groupe.administrateur }}</center>
-											  </td>
-											</a>
-										</tr>
-								{% endfor %}
-								</table>
-								{% endif %}
-								{% endif %}
-								  </div>
-								  <h3>Votes</h3>
-								  <div>
+											<table>
+												<tr>
+													<td>
+														<center><b>Type</b></center>
+													</td>
+													<td>
+														<center><b>Nom</b></center>
+													</td>
+													<td>
+														<center><b>Description</b></center>
+													</td>
+													<td>
+														<center><b>Administrateur</b></center>
+													</td>
+												</tr>
+												{% for groupe in groupes %}
+													{% if groupe is not null %}
+														<tr class = "liste_votes" onclick="document.location.href='groupe/{{ groupe.id }}'">
+															<td>
+																{% if groupe.etat is sameas('Groupe public') %}
+																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+																{% endif %} 
+																{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
+																	<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+																{% endif %}
+																{% if groupe.etat is sameas('Groupe privé') %}
+																	<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{{ groupe.nom }}</center>
+															</td>
+															<td>
+																<center>{{ groupe.description }} </center>
+															</td>
+															<td>
+																<center>{{ groupe.administrateur }}</center>
+														</tr>
+													{% endif %}
+												{% endfor %}
+											</table>
+										{% endif %}
+										{% if groupes is null %}
+											Aucun groupe
+										{% endif %}
+									{% endif %}
+									{% if groupes is not defined %}
+										Aucun groupe
+									{% endif %}
+								</div>
+								<h3>Votes</h3>
+								<div>
 									{% if votes is defined %}
-						{% if votes is not null %}
-							<table>
-								<tr>
-									<td>
-										<center><b>Type</b></center>
-									</td>
-									<td>
-										<center><b>Nom</b></center>
-									</td>
-									<td>
-										<center><b>Description</b></center>
-									</td>
-									<td>
-										<center><b>Date de création</b></center>
-									</td>
-									<td>
-										<center><b>Date de fin</b></center>
-									</td>
-									<td>
-										<center><b>Groupe associé</b></center>
-									</td>
-									<td>
-										<center><b>Etat</b></center>
-									</td>
-									<td>
-										<center><b>Créateur</b></center>
-									</td>
-								</tr>
-								{% set cpt = 0 %}
-								{% for vote in votes %}
-									<tr class = "liste_votes" onclick="document.location.href='../vote/{{ vote.id }}'">
-											<td>
-												{% if vote.type is sameas('Vote public') %}
-													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
-												{% endif %} 
-												{% if vote.type is sameas('Vote réservé aux inscrits') %}
-													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
-												{% endif %}
-												{% if vote.type is sameas('Vote privé') %}
-													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
-												{% endif %}
-											</td>
-											<td>
-												<center>{{ vote.nom }}</center>
-											</td>
-											<td>
-												<center>{{ vote.texte }} </center>
-											</td>
-											<td>
-												<center>{{ vote.dateDeCreation|date("d/m/y") }}</center>
-											</td>
-											<td>
-												<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
-											</td>
-											<td>
-												{% if vote.groupeAssocie is not null %}
-													<center>{{ vote.groupeAssocie }}</center>
-												{% endif %}
-												{% if vote.groupeAssocie is null %}
-													<center>Aucun</center>
-												{% endif %}
-											</td>
-											<td>
-												<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
-											</td>
-											<td>
-												<center>{{ vote_createurs[cpt] }}</center>
-											</td>
-											{% set cpt = cpt + 1 %}
-										</a>
-									</tr>
-								{% endfor %}
-							</table>
-						{% endif %}
-					{% endif %}
+										{% if votes is not null %}
+											<table>
+												<tr>
+													<td>
+														<center><b>Type</b></center>
+													</td>
+													<td>
+														<center><b>Nom</b></center>
+													</td>
+													<td>
+														<center><b>Description</b></center>
+													</td>
+													<td>
+														<center><b>Date de fin</b></center>
+													</td>
+													<td>
+														<center><b>Groupe associé</b></center>
+													</td>
+													<td>
+														<center><b>Etat</b></center>
+													</td>
+													<td>
+														<center><b>Créateur</b></center>
+													</td>
+												</tr>
+												{% set cpt = 0 %}
+												{% for vote in votes %}
+													<tr class = "liste_votes" onclick="document.location.href='vote/{{ vote.id }}'">
+															<td>
+																{% if vote.type is sameas('Vote public') %}
+																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+																{% endif %} 
+																{% if vote.type is sameas('Vote réservé aux inscrits') %}
+																	<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+																{% endif %}
+																{% if vote.type is sameas('Vote privé') %}
+																	<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{{ vote.nom }}</center>
+															</td>
+															<td>
+																<center>{{ vote.texte }} </center>
+															</td>
+															<td>
+																<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
+															</td>
+															<td>
+																{% if vote.groupeAssocie is not null %}
+																	<center>{{ vote.groupeAssocie }}</center>
+																{% endif %}
+																{% if vote.groupeAssocie is null %}
+																	<center>Aucun</center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
+															</td>
+															<td>
+																<center>{{ vote_createurs[cpt] }}</center>
+															</td>
+															{% set cpt = cpt + 1 %}
+														</a>
+													</tr>
+												{% endfor %}
+											</table>
+										{% endif %}
+										{% if votes is null %}
+											Aucun vote
+										{% endif %}
+									{% endif %}
+									{% if votes is not defined %}
+										Aucun vote
+									{% endif %}
 								  </div>
 								  <h3>Modération de groupes</h3>
 								  <div>
@@ -165,14 +186,72 @@
 						</td>
 						<td>
 							<div class="well">
-								Zone pour les 3 derniers votes
+								<b>Dernier vote créé</b><br><br>
+								<center>
+									<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+									</iframe><br><br>
+									<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+								</center>
 							</div>
 						</td>
 					</tr>
 					<tr>
 						<td>
 							<div class="well">
-								Zone pour les 3 derniers groupes
+								<b>Les 3 derniers groupes créés</b><br><br>
+								<div>
+									{% if last_groupes is defined %}
+										{% if last_groupes is not null %}
+											<table style = "margin-left: 100px;">
+												<tr>
+													<td>
+														<center><b>Type</b></center>
+													</td>
+													<td>
+														<center><b>Nom</b></center>
+													</td>
+													<td>
+														<center><b>Description</b></center>
+													</td>
+													<td>
+														<center><b>Administrateur</b></center>
+													</td>
+												</tr>
+												{% for groupe in last_groupes %}
+													{% if groupe is not null %}
+														<tr class = "liste_votes" onclick="document.location.href='groupe/{{ groupe.id }}'">
+															<td>
+																{% if groupe.etat is sameas('Groupe public') %}
+																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+																{% endif %} 
+																{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
+																	<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+																{% endif %}
+																{% if groupe.etat is sameas('Groupe privé') %}
+																	<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{{ groupe.nom }}</center>
+															</td>
+															<td>
+																<center>{{ groupe.description }} </center>
+															</td>
+															<td>
+																<center>{{ groupe.administrateur }}</center>
+														</tr>
+													{% endif %}
+												{% endfor %}
+											</table>
+										{% endif %}
+										{% if last_groupes is null %}
+											Aucun groupe
+										{% endif %}
+									{% endif %}
+									{% if last_groupes is not defined %}
+										Aucun groupe
+									{% endif %}
+								</div>
 							</div>
 						</td>
 					</tr>
@@ -185,7 +264,12 @@
 				{% if utilisateur is null %}
 					<td>
 						<div class="well">
-							Zone pour les 3 derniers votes
+							<b>Dernier vote public créé</b><br><br>
+							<center>
+								<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+								</iframe><br><br>
+								<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+							</center>
 						</div>
 					</td>
 				{% endif %}
@@ -193,7 +277,12 @@
 			{% if utilisateur is not defined %}
 				<td>
 					<div class="well">
-						Zone pour les 3 derniers votes
+						<b>Dernier vote public créé</b><br><br>
+						<center>
+							<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+							</iframe><br><br>
+							<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+						</center>
 					</div>
 				</td>
 			{% endif %}
@@ -203,11 +292,13 @@
 				{% if utilisateur is null %}
 					<td>
 						<div class="well">
-							<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-							<form method="post" class="Inscription" {{ form_enctype(form) }}>
-							{{ form_widget(form) }}
-							<input type="submit" class="btn btn-primary" id="form_validatation" />
-							</form>
+							<center>
+								<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
+								<form method="post" class="Inscription" {{ form_enctype(form) }}>
+								{{ form_widget(form) }}
+								<input type="submit" class="btn btn-primary" id="form_validatation" />
+								</form>
+							</center>
 						</div>
 					</td>
 				{% endif %}
@@ -215,11 +306,13 @@
 			{% if utilisateur is not defined %}
 				<td>
 					<div class="well">
-						<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-						<form method="post" class="Inscription" {{ form_enctype(form) }}>
-						{{ form_widget(form) }}
-						<input type="submit" class="btn btn-primary" id="form_validatation" />
-						</form>
+						<center>
+							<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
+							<form method="post" class="Inscription" {{ form_enctype(form) }}>
+							{{ form_widget(form) }}
+							<input type="submit" class="btn btn-primary" id="form_validatation" />
+							</form>
+						</center>
 					</div>
 				</td>
 			{% endif %}
@@ -234,5 +327,12 @@
 			</td>
 		</tr>
 	</table>
+	
+	<script>	
+		var myIframe = document.getElementById('iframe');
+		myIframe.onload = function(){
+			myIframe.contentWindow.scrollTo(250,300);
+		};
+	</script>
 
 {% endblock %}

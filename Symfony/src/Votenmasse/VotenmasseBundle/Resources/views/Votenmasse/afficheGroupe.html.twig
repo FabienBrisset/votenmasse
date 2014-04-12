@@ -1,68 +1,50 @@
 {% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
 
 {% block title %}
- {{ parent() }} - Accueil 
+ {{ parent() }} - Groupe
 {% endblock %}
 
 {% block votenmasse_body %}
-	{% if erreur is defined %}
-		<h5 style="color:red">{{ erreur }}</h5>
-	{% endif %}
-	{% if inscription_valide is defined %}
-		{% if inscription_valide is not null %}
-			<h5 style="color:red">{{ inscription_valide }}</h5>
-		{% endif %}
-	{% endif %}
 	<table class="table">
 		<tr>
-		
-		
-			{% if utilisateur is defined %}
+	 {% if utilisateur is defined %}
 				{% if utilisateur is not null %}
 					<tr>
 						<td rowspan = "2">
 							<div class="well">
 								<div id="accordion">
-								  <h3>Groupes</h3>
+								  <h3>Liste des membres du groupe</h3>
 								  <div>
-									{% if groupes is defined %}
-										{% if groupes is not null %}
+									{% if liste_membres is defined %}
+										{% if liste_membres is not null %}
 										<table>
 										<tr>
-											<td>
-												<center><b>Type</b></center>
-											</td>
 											<td>
 												<center><b>Nom</b></center>
 											</td>
 											<td>
-												<center><b>Description</b></center>
+												<center><b>Prenomom</b></center>
 											</td>
 											<td>
-												<center><b>Administrateur</b></center>
+												<center><b>Login</b></center>
+											</td>
+											<td>
+												<center><b>Sexe</b></center>
 											</td>
 										</tr>
-										{% for groupe in groupes %}
-										<tr class = "liste_votes" onclick="document.location.href='../app_dev.php/groupe/{{ groupe.id }}'">
+										{% for membre in liste_membres %}
+										<tr class = "liste_votes" onclick="">
 											<td>
-												{% if groupe.etat is sameas('Groupe public') %}
-													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
-												{% endif %} 
-												{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
-													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
-												{% endif %}
-												{% if groupe.etat is sameas('Groupe privé') %}
-													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
-												{% endif %}
+												<center>{{ membre.nom }}</center>
 											</td>
 											<td>
-												<center>{{ groupe.nom }}</center>
+												<center>{{ membre.prenom }} </center>
 											</td>
 											<td>
-												<center>{{ groupe.description }} </center>
-											</td>
-											<td>
-											<center>{{ groupe.administrateur }}</center>
+											<center>{{ membre.login }}</center>
+											  </td>
+											  <td>
+												<center>{{ membre.sexe }}</center>
 											  </td>
 											</a>
 										</tr>
@@ -70,11 +52,12 @@
 								</table>
 								{% endif %}
 								{% endif %}
-								  </div>
-								  <h3>Votes</h3>
+
+								</div>
+								  <h3>Liste des votes associés</h3>
 								  <div>
-									{% if votes is defined %}
-						{% if votes is not null %}
+									{% if liste_votes_associe is defined %}
+						{% if liste_votes_associe is not null %}
 							<table>
 								<tr>
 									<td>
@@ -103,7 +86,7 @@
 									</td>
 								</tr>
 								{% set cpt = 0 %}
-								{% for vote in votes %}
+								{% for vote in liste_votes_associe %}
 									<tr class = "liste_votes" onclick="document.location.href='../vote/{{ vote.id }}'">
 											<td>
 												{% if vote.type is sameas('Vote public') %}
@@ -149,79 +132,13 @@
 							</table>
 						{% endif %}
 					{% endif %}
-								  </div>
-								  <h3>Modération de groupes</h3>
-								  <div>
-									<p><a href = "Mon premier groupe à modérer">Mon premier groupe à modérer (membre ou admin ou modo)</a></p>
-									<p><a href = "Mon second groupe à modérer">Mon second groupe à modérer (membre ou admin ou modo)</a></p>
-								  </div>
-								  <h3>Modération de votes</h3>
-								  <div>
-									<p><a href = "Mon premier vote à modérer">Mon premier vote à modérer (membre ou admin ou modo)</a></p>
-									<p><a href = "Mon second vote à modérer">Mon second vote à modérer (membre ou admin ou modo)</a></p>
-								  </div>
+								  
+								  
 								</div>
 							</div>
 						</td>
-						<td>
-							<div class="well">
-								Zone pour les 3 derniers votes
-							</div>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<div class="well">
-								Zone pour les 3 derniers groupes
-							</div>
-						</td>
 					</tr>
 				{% endif %}
-			{% endif %}
-			
-			
-		
-			{% if utilisateur is defined %}
-				{% if utilisateur is null %}
-					<td>
-						<div class="well">
-							Zone pour les 3 derniers votes
-						</div>
-					</td>
-				{% endif %}
-			{% endif %}
-			{% if utilisateur is not defined %}
-				<td>
-					<div class="well">
-						Zone pour les 3 derniers votes
-					</div>
-				</td>
-			{% endif %}
-			
-			
-			{% if utilisateur is defined %}
-				{% if utilisateur is null %}
-					<td>
-						<div class="well">
-							<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-							<form method="post" class="Inscription" {{ form_enctype(form) }}>
-							{{ form_widget(form) }}
-							<input type="submit" class="btn btn-primary" id="form_validatation" />
-							</form>
-						</div>
-					</td>
-				{% endif %}
-			{% endif %}
-			{% if utilisateur is not defined %}
-				<td>
-					<div class="well">
-						<h3 id = "titre_formulaire"><b>Formulaire d'inscription</b></h3>
-						<form method="post" class="Inscription" {{ form_enctype(form) }}>
-						{{ form_widget(form) }}
-						<input type="submit" class="btn btn-primary" id="form_validatation" />
-						</form>
-					</div>
-				</td>
 			{% endif %}
 		</tr>
 		<tr>

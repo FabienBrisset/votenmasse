@@ -188,9 +188,14 @@
 							<div class="well">
 								<b>Dernier vote créé</b><br><br>
 								<center>
-									<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
-									</iframe><br><br>
-									<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+									{% if deja_vote is sameas(false) %}
+										<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+										</iframe><br><br>
+										<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+									{% endif %}
+									{% if deja_vote is sameas(true) %}
+										Aucun nouveau vote
+									{% endif %}
 								</center>
 							</div>
 						</td>
@@ -258,30 +263,19 @@
 				{% endif %}
 			{% endif %}
 			
-			
-		
-			{% if utilisateur is defined %}
-				{% if utilisateur is null %}
-					<td>
-						<div class="well">
-							<b>Dernier vote public créé</b><br><br>
-							<center>
-								<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
-								</iframe><br><br>
-								<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
-							</center>
-						</div>
-					</td>
-				{% endif %}
-			{% endif %}
-			{% if utilisateur is not defined %}
+			{% if invite is defined %}
 				<td>
 					<div class="well">
 						<b>Dernier vote public créé</b><br><br>
 						<center>
-							<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
-							</iframe><br><br>
-							<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+							{% if deja_vote is sameas(false) %}
+								<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+								</iframe><br><br>
+								<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+							{% endif %}
+							{% if deja_vote is sameas(true) %}
+								Aucun nouveau vote
+							{% endif %}
 						</center>
 					</div>
 				</td>

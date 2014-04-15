@@ -50,6 +50,10 @@ votenmasse_votenmasse_commentaire:
    pattern: /commentaire/{vote}/{supp}
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, vote: null, supp: null }
 
+votenmasse_votenmasse_groupes:
+   pattern: /liste/groupes
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupes }
+
 votenmasse_votenmasse_affichage_groupe:
-    pattern: /groupe/{groupe}
-    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:afficherGroupe, groupe: null }
+    pattern: /groupe/{groupe_id}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:afficherGroupe, groupe_id: null }

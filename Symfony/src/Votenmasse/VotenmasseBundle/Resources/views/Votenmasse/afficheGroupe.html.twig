@@ -1,155 +1,195 @@
 {% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
 
 {% block title %}
- {{ parent() }} - Groupe
+ {{ parent() }} - Groupe - {{ groupe_id }}
 {% endblock %}
 
 {% block votenmasse_body %}
 	<table class="table">
+		{% if groupe is defined %}
+			<legend><b>Groupe {{ groupe_id }} : {{ groupe.nom }}</b></legend>
+		{% endif %}
+		{% if groupe is not defined %}
+			<legend><b>Le groupe {{ message }} n'existe pas</b></legend>
+		{% endif %}
 		<tr>
-	 {% if utilisateur is defined %}
-				{% if utilisateur is not null %}
-					<tr>
-						<td rowspan = "2">
-							<div class="well">
-								<div id="accordion">
-								  <h3>Liste des membres du groupe</h3>
-								  <div>
-									{% if liste_membres is defined %}
-										{% if liste_membres is not null %}
-										<table>
+			{% if message is defined %}
+				<div class = "well">
+					<center>
+						Il n'y a pas de groupe {{ message }}<br><br>
+						<a href='../liste/groupes'>Retour à la liste des groupes</a>
+					</center>
+				</div>
+			{% endif %}
+			{% if message is not defined %}
+				<tr>
+					<td rowspan = "2">
+						<div class="well">
+							<div id="accordion">
+								<h3>Liste des membres du groupe</h3>
+								<div>
+									<table align = "center">
 										<tr>
 											<td>
 												<center><b>Nom</b></center>
 											</td>
 											<td>
-												<center><b>Prenomom</b></center>
+												<center><b>Prénom</b></center>
 											</td>
 											<td>
 												<center><b>Login</b></center>
 											</td>
 											<td>
-												<center><b>Sexe</b></center>
+												<center><b>Statut</b></center>
 											</td>
 										</tr>
-										{% for membre in liste_membres %}
-										<tr class = "liste_votes" onclick="">
+										<tr>
 											<td>
-												<center>{{ membre.nom }}</center>
+												<center>{{ administrateur_groupe_infos.nom }}</center>
 											</td>
 											<td>
-												<center>{{ membre.prenom }} </center>
+												<center>{{ administrateur_groupe_infos.prenom }}</center>
 											</td>
 											<td>
-											<center>{{ membre.login }}</center>
-											  </td>
-											  <td>
-												<center>{{ membre.sexe }}</center>
-											  </td>
-											</a>
+												<center>{{ administrateur_groupe_infos.login }}</center>
+											</td>
+											<td>
+												<center>Administrateur</center>
+											</td>
 										</tr>
-								{% endfor %}
-								</table>
-								{% endif %}
-								{% endif %}
-
+										{% for membre in membres %}
+											<tr>
+												<td>
+													<center>{{ membre.utilisateur.nom }}</center>
+												</td>
+												<td>
+													<center>{{ membre.utilisateur.prenom }} </center>
+												</td>
+												<td>
+													<center>{{ membre.utilisateur.login }}</center>
+												</td>
+												<td>
+													<center>
+														{% if membre.moderateur is sameas(false) %}
+															Membre
+														{% endif %}
+														{% if membre.moderateur is sameas(true) %}
+															Modérateur
+														{% endif %}
+													</center>
+												</td>
+											</tr>
+										{% endfor %}
+									</table>
 								</div>
-								  <h3>Liste des votes associés</h3>
-								  <div>
-									{% if liste_votes_associe is defined %}
-						{% if liste_votes_associe is not null %}
-							<table>
-								<tr>
-									<td>
-										<center><b>Type</b></center>
-									</td>
-									<td>
-										<center><b>Nom</b></center>
-									</td>
-									<td>
-										<center><b>Description</b></center>
-									</td>
-									<td>
-										<center><b>Date de création</b></center>
-									</td>
-									<td>
-										<center><b>Date de fin</b></center>
-									</td>
-									<td>
-										<center><b>Groupe associé</b></center>
-									</td>
-									<td>
-										<center><b>Etat</b></center>
-									</td>
-									<td>
-										<center><b>Créateur</b></center>
-									</td>
-								</tr>
-								{% set cpt = 0 %}
-								{% for vote in liste_votes_associe %}
-									<tr class = "liste_votes" onclick="document.location.href='../vote/{{ vote.id }}'">
-											<td>
-												{% if vote.type is sameas('Vote public') %}
-													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
-												{% endif %} 
-												{% if vote.type is sameas('Vote réservé aux inscrits') %}
-													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
-												{% endif %}
-												{% if vote.type is sameas('Vote privé') %}
-													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
-												{% endif %}
-											</td>
-											<td>
-												<center>{{ vote.nom }}</center>
-											</td>
-											<td>
-												<center>{{ vote.texte }} </center>
-											</td>
-											<td>
-												<center>{{ vote.dateDeCreation|date("d/m/y") }}</center>
-											</td>
-											<td>
-												<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
-											</td>
-											<td>
-												{% if vote.groupeAssocie is not null %}
-													<center>{{ vote.groupeAssocie }}</center>
-												{% endif %}
-												{% if vote.groupeAssocie is null %}
-													<center>Aucun</center>
-												{% endif %}
-											</td>
-											<td>
-												<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
-											</td>
-											<td>
-												<center>{{ vote_createurs[cpt] }}</center>
-											</td>
-											{% set cpt = cpt + 1 %}
-										</a>
-									</tr>
-								{% endfor %}
-							</table>
-						{% endif %}
-					{% endif %}
-								  
-								  
+								<h3>Liste des votes associés</h3>
+								<div>
+									{% if votes_associes is defined %}
+										{% if votes_associes is not null %}
+											<table>
+												<tr>
+													<td>
+														<center><b>Type</b></center>
+													</td>
+													<td>
+														<center><b>Nom</b></center>
+													</td>
+													<td>
+														<center><b>Description</b></center>
+													</td>
+													<td>
+														<center><b>Date de création</b></center>
+													</td>
+													<td>
+														<center><b>Date de fin</b></center>
+													</td>
+													<td>
+														<center><b>Groupe associé</b></center>
+													</td>
+													<td>
+														<center><b>Etat</b></center>
+													</td>
+													<td>
+														<center><b>Créateur</b></center>
+													</td>
+												</tr>
+												{% set cpt = 0 %}
+												{% for vote in votes_associes %}
+													{% if valide is sameas(true) %}
+														<tr class = "liste_votes" onclick="document.location.href='../vote/{{ vote.id }}'">
+													{% endif %}
+													{% if valide is sameas(false) %}
+														<tr>
+													{% endif %}
+														<td>
+															{% if vote.type is sameas('Vote public') %}
+																<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+															{% endif %} 
+															{% if vote.type is sameas('Vote réservé aux inscrits') %}
+																<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+															{% endif %}
+															{% if vote.type is sameas('Vote privé') %}
+																<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+															{% endif %}
+														</td>
+														<td>
+															<center>{{ vote.nom }}</center>
+														</td>
+														<td>
+															<center>{{ vote.texte }} </center>
+														</td>
+														<td>
+															<center>{{ vote.dateDeCreation|date("d/m/y") }}</center>
+														</td>
+														<td>
+															<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
+														</td>
+														<td>
+															{% if vote.groupeAssocie is not null %}
+																<center>{{ vote.groupeAssocie }}</center>
+															{% endif %}
+															{% if vote.groupeAssocie is null %}
+																<center>Aucun</center>
+															{% endif %}
+														</td>
+														<td>
+															<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
+														</td>
+														<td>
+															<center>{{ vote_createurs[cpt] }}</center>
+														</td>
+														{% set cpt = cpt + 1 %}
+													</tr>
+												{% endfor %}
+											</table>
+										{% endif %}
+										{% if votes_associes is null %}
+											Aucun vote n'est associé au groupe {{ groupe.nom }}
+										{% endif %}
+									{% endif %}   
+									{% if votes_associes is not defined %}
+										Aucun vote n'est associé au groupe {{ groupe.nom }}
+									{% endif %}
 								</div>
 							</div>
-						</td>
-					</tr>
-				{% endif %}
+						</div>
+					</td>
+				</tr>
 			{% endif %}
 		</tr>
-		<tr>
-			<td colspan = "2">
-				<div class="well">
-						<img src = "{{ asset('img/pub.png') }}" alt = "Public" /> Ce logo signifie que le vote ou le groupe est public (accessible à tous) <br>
-						<img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /> Ce logo signifie que le vote ou le groupe est réservé aux inscrits <br>
-						<img src = "{{ asset('img/pri.png') }}" alt = "Privé" /> Ce logo signifie que le vote ou le groupe est privé (vous devez être membre du groupe)
-				</div>
-			</td>
-		</tr>
 	</table>
-
+	{% if valide is defined %}
+		<center>
+			{% if valide is sameas(true) %}
+				<form action="{{ path('votenmasse_votenmasse_index') }}" method="post">
+					<button class="btn btn-primary btn-mini" type="submit">Quitter le groupe <i class="icon-white icon-ok-sign"></i> </button>
+				</form>
+			{% endif %}
+			{% if valide is sameas(false) %}
+				<form action="{{ path('votenmasse_votenmasse_index') }}" method="post">
+					<button class="btn btn-primary btn-mini" type="submit">Effectuer une demande pour rejoindre le groupe <i class="icon-white icon-ok-sign"></i> </button>
+				</form>
+			{% endif %}
+		</center>
+	{% endif %}
 {% endblock %}

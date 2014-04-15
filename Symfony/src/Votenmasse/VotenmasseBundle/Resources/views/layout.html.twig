@@ -7,20 +7,22 @@
 {% block body %}
 	<div class = "well">
 		<div align="center">
-			<img src="{{ asset('img/Votenmasse.png') }}" alt="Votenmasse"/>
+			<a href="{{ path('votenmasse_votenmasse_index') }}">
+				<img src="{{ asset('img/Votenmasse.png') }}" alt="Votenmasse"/>
+			</a>
 		</div>
 		<br>
 		<div>
 			<ul class="nav nav-pills nav-stacked">
 				<li>
-					<form action="{{ path('votenmasse_votenmasse_index') }}" method="post">
-						<input type = "submit" value = "Accueil" style = "margin-right: 5px; color: #5e93f0;" class="btn btn-inverse btn-large">
-					</form>
 					<form action="{{ path('votenmasse_votenmasse_votes') }}" method="post">
 						<input type = "submit" value = "Votes" style = "margin-right: 5px; color: #5e93f0;" class="btn btn-inverse btn-large">
 					</form>
 					<form action="{{ path('votenmasse_votenmasse_resultats') }}" method="post">
 						<input type = "submit" value = "Résultats" style = "margin-right: 5px; color: #5e93f0;" class="btn btn-inverse btn-large">
+					</form>
+					<form action="{{ path('votenmasse_votenmasse_groupes') }}" method="post">
+						<input type = "submit" value = "Groupes" style = "margin-right: 5px; color: #5e93f0;" class="btn btn-inverse btn-large">
 					</form>
 					<form action="{{ path('votenmasse_votenmasse_forum') }}" method="post">
 						<input type = "submit" value = "Forum" style = "margin-right: 5px; color: #5e93f0;" class="btn btn-inverse btn-large">

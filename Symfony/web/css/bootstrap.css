@@ -24,6 +24,7 @@ form.Inscription #form_nom, #form_prenom, #form_login, #form_motDePasse, #form_m
 
 form.Inscription #form_sexe {
 	margin-bottom: 20px;
+	width: 100px;
 }
 
 form.Inscription #form_dateDeNaissance_year, #form_dateDeNaissance_month, #form_dateDeNaissance_day {
@@ -103,12 +104,22 @@ label[for=form_moderateur] {
 
 /* css liste des votes */
 
-
 .liste_votes { 
   cursor: pointer;
  }
  
 .liste_votes:hover 
+{ 
+   background-color: lightblue; 
+} 
+
+/* css liste des groupes */
+
+.liste_groupes { 
+  cursor: pointer;
+ }
+ 
+.liste_groupes:hover 
 { 
    background-color: lightblue; 
 } 

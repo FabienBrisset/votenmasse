@@ -40,17 +40,16 @@ class VotenmasseController extends Controller {
 				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 				->findByUtilisateur($utilisateur);
 				
-
 			foreach ($groupes_utilisateur as $cle => $valeur) {
-				$groupes_u = $valeur->getGroupe();
+				$groupes_u[] = $valeur->getGroupe();
 			}
-				
+			
 			$groupes_administrateur = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
 				->findByAdministrateur($u);
 				
 			if (isset($groupes_administrateur)) {
-				$groupes = $groupes_administrateur;
+				$groupes[] = $groupes_administrateur;
 			}
 			
 			if(isset($groupes_u)) {
@@ -62,11 +61,22 @@ class VotenmasseController extends Controller {
 				}
 			}
 			
+			if (is_array($groupes[0])) {
+				foreach ($groupes as $cle => $valeur) {
+					foreach ($valeur as $key => $value) {
+						$groupes_final[] = $value;
+					}
+				}
+			}
+			else {
+				$groupes_final = $groupes;
+			}
+			
 			$cpt = 0;
 			
-			if (sizeof($groupes) > 10) {
-				while ($cpt < (sizeof($groupes)-10)) {
-					$groupes[$cpt] = null;
+			if (sizeof($groupes_final) > 10) {
+				while ($cpt < (sizeof($groupes_final)-10)) {
+					$groupes_final[$cpt] = null;
 					$cpt++;
 				}
 			}
@@ -101,19 +111,18 @@ class VotenmasseController extends Controller {
 			else {
 				$avis_existe_deja_pour_last_vote = false;
 			}
-			
-			if ($votes != NULL && $groupes != NULL) {
-						
+		
+			if ($votes != NULL && $groupes_final != NULL) {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 						'utilisateur' => $session->get('utilisateur'),
 						'votes' => $votes,
 						'vote_createurs' => $createurs,
-						'groupes' => $groupes,
+						'groupes' => $groupes_final,
 						'last_vote' => $last_vote,
 						'deja_vote' => $avis_existe_deja_pour_last_vote,
 						'last_groupes' => $last_groupes));
 			}
-			else if ($votes != NULL && $groupes == NULL) {
+			else if ($votes != NULL && $groupes_final == NULL) {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 						'utilisateur' => $session->get('utilisateur'),
 						'votes' => $votes,
@@ -122,10 +131,10 @@ class VotenmasseController extends Controller {
 						'deja_vote' => $avis_existe_deja_pour_last_vote,
 						'last_groupes' => $last_groupes));
 			}
-			else if ($votes == NULL && $groupes != NULL) {
+			else if ($votes == NULL && $groupes_final != NULL) {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 						'utilisateur' => $session->get('utilisateur'),
-						'groupes' => $groupes,
+						'groupes' => $groupes_final,
 						'last_vote' => $last_vote,
 						'deja_vote' => $avis_existe_deja_pour_last_vote,
 						'last_groupes' => $last_groupes));
@@ -1658,9 +1667,9 @@ class VotenmasseController extends Controller {
 					->findOneById($session->get('vote'));
 			}
 			
-			// Si l'utilisateur a triché en voulant accéder à un vote qui n'existe pas on le redirige vers la page d'accueil
+			// Si l'utilisateur a triché en voulant accéder à un vote qui n'existe pas on le redirige vers la page de votes
 			if ($infos_vote == NULL) {
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
 			}
 			
 			$date_du_jour = date_create(date('Y-m-d'));
@@ -3726,7 +3735,7 @@ class VotenmasseController extends Controller {
 					}
 				}
 				else {
-					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
 				}
 			}
 			
@@ -6638,7 +6647,7 @@ class VotenmasseController extends Controller {
 		}
 		
 		if ($vote == null && $session->get('vote') == null) {
-			return $this->redirect($this->generateUrl('votenmasse_votenmasse_forum'));
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 		
 		if ($request->getMethod() != 'POST') {
@@ -6654,43 +6663,48 @@ class VotenmasseController extends Controller {
 			}
 			
 			if ($u == NULL) {
-				if ($infos_vote->getType() == "Vote public") {
-					$invite = $session->get('invite');
-					
-					$listeVote=$this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
-						->findBy(array('vote'=>$infos_vote));
-					$tableau=array();
-					
-					if($listeVote != NULL) {
-						for ($i=0; $i <sizeof($listeVote) ; $i++) { 
-							$tab = array(
-								'login'=>$listeVote[$i]->getUtilisateur()->getLogin(),
-								'message'=>$listeVote[$i]->getCommentaire()->getTexteCommentaire(),
-								'dateCreation'=>$listeVote[$i]->getDateCreation());
-			
-							$tableau[]=$tab;
-						}
+				if (isset($infos_vote)) {
+					if ($infos_vote->getType() == "Vote public") {
+						$invite = $session->get('invite');
 						
-						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
-										'form' => $form->createView(),
-										'tableau' => $tableau,
-										'vote' => $vote,
-										'nom_vote' => $infos_vote->getNom(),
-										'texte_vote' => $infos_vote->getTexte(),
-										'groupe_associe' => $infos_vote->getGroupeAssocie()));
+						$listeVote=$this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+							->findBy(array('vote'=>$infos_vote));
+						$tableau=array();
+						
+						if($listeVote != NULL) {
+							for ($i=0; $i <sizeof($listeVote) ; $i++) { 
+								$tab = array(
+									'login'=>$listeVote[$i]->getUtilisateur()->getLogin(),
+									'message'=>$listeVote[$i]->getCommentaire()->getTexteCommentaire(),
+									'dateCreation'=>$listeVote[$i]->getDateCreation());
+				
+								$tableau[]=$tab;
+							}
+							
+							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig',array(
+											'form' => $form->createView(),
+											'tableau' => $tableau,
+											'vote' => $vote,
+											'nom_vote' => $infos_vote->getNom(),
+											'texte_vote' => $infos_vote->getTexte(),
+											'groupe_associe' => $infos_vote->getGroupeAssocie()));
+						}
+						else {
+							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig', array(
+									'form' => $form->createView(),
+									'vote' => $vote,
+									'nom_vote' => $infos_vote->getNom(),
+									'texte_vote' => $infos_vote->getTexte(),
+									'groupe_associe' => $infos_vote->getGroupeAssocie()));
+						}
 					}
 					else {
-						return $this->render('VotenmasseVotenmasseBundle:Votenmasse:listeCommentaire.html.twig', array(
-								'form' => $form->createView(),
-								'vote' => $vote,
-								'nom_vote' => $infos_vote->getNom(),
-								'texte_vote' => $infos_vote->getTexte(),
-								'groupe_associe' => $infos_vote->getGroupeAssocie()));
+						return $this->redirect($this->generateUrl('votenmasse_votenmasse_forum'));
 					}
 				}
 				else {
-					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_forum'));
 				}
 			}
 			
@@ -6899,66 +6913,68 @@ class VotenmasseController extends Controller {
 		$u = $session->get('utilisateur');
 		$groupes = NULL;
 	
-		if ($request->getMethod() == 'POST') {
-			// On définit par défaut que l'utilisateur n'a pas demandé de filtre
-			$public = false;
-			$reserve = false;
-			$prive = false;
-		
-			// S'il n'a pas filtré
-			if ($request->request->get('type') == null) {
-				$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:groupe')
-					->findAll();
-			}
-			// Sinon s'il a demandé un filtre sur le type on va tester tous les cas possible pour type
-			else if ($request->request->get('type') != null) {
-				foreach ($request->request->get('type') as $cle => $valeur) {
-					if ($valeur == 'public') {
-						$public = true;
+		if ($u != NULL) {
+			if ($request->getMethod() == 'POST') {
+				// On définit par défaut que l'utilisateur n'a pas demandé de filtre
+				$public = false;
+				$reserve = false;
+				$prive = false;
+			
+				// S'il n'a pas filtré
+				if ($request->request->get('type') == null) {
+					$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:groupe')
+						->findAll();
+				}
+				// Sinon s'il a demandé un filtre sur le type on va tester tous les cas possible pour type
+				else if ($request->request->get('type') != null) {
+					foreach ($request->request->get('type') as $cle => $valeur) {
+						if ($valeur == 'public') {
+							$public = true;
+						}
+						if ($valeur == 'réservé') {
+							$reserve = true;
+						}
+						if ($valeur == 'privé') {
+							$prive = true;
+						}
 					}
-					if ($valeur == 'réservé') {
-						$reserve = true;
+					
+					if ($public == true && $reserve == true && $prive == true) {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findAll();
 					}
-					if ($valeur == 'privé') {
-						$prive = true;
+					else if ($public == true && $reserve == true && $prive == false) {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findBy(array('etat' => array('Groupe public','Groupe réservé aux inscrits')));
 					}
-				}
-				
-				if ($public == true && $reserve == true && $prive == true) {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findAll();
-				}
-				else if ($public == true && $reserve == true && $prive == false) {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findBy(array('etat' => array('Groupe public','Groupe réservé aux inscrits')));
-				}
-				else if ($public == true && $reserve == false && $prive == true) {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findBy(array('etat' => array('Groupe public','Groupe privé')));
-				}
-				else if ($public == false && $reserve == true && $prive == true) {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findBy(array('etat' => array('Groupe réservé aux inscrits','Groupe privé')));
-				}
-				else if ($public == true && $reserve == false && $prive == false) {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findBy(array('etat' => 'Groupe public'));
-				}
-				else if ($public == false && $reserve == true && $prive == false) {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findBy(array('etat' => 'Groupe réservé aux inscrits'));
-				}
-				else {
-					$groupes = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findBy(array('etat' => 'Groupe privé'));
+					else if ($public == true && $reserve == false && $prive == true) {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findBy(array('etat' => array('Groupe public','Groupe privé')));
+					}
+					else if ($public == false && $reserve == true && $prive == true) {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findBy(array('etat' => array('Groupe réservé aux inscrits','Groupe privé')));
+					}
+					else if ($public == true && $reserve == false && $prive == false) {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findBy(array('etat' => 'Groupe public'));
+					}
+					else if ($public == false && $reserve == true && $prive == false) {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findBy(array('etat' => 'Groupe réservé aux inscrits'));
+					}
+					else {
+						$groupes = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
+						->findBy(array('etat' => 'Groupe privé'));
+					}
 				}
 			}
 		}
@@ -7018,7 +7034,7 @@ class VotenmasseController extends Controller {
 			->findByGroupe($groupe_infos);
 		
 		foreach ($req_groupes_utilisateurs as $cle => $valeur) {
-			if (ereg("Invité", $valeur->getUtilisateur()->getLogin()) == false) {
+			if (preg_match("/Invité/", $valeur->getUtilisateur()->getLogin()) == false) {
 				$groupes_utilisateurs[] = $valeur;
 			}
 		}
@@ -7026,6 +7042,10 @@ class VotenmasseController extends Controller {
 		$votes = NULL;
 		
 		if (isset($groupe_infos)) {
+			if ($groupe_infos->getEtat() != "Groupe public" && $u == NULL) {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+			
 			$votes = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
 				->findByGroupeAssocie($groupe_infos->getNom());
@@ -7091,5 +7111,17 @@ class VotenmasseController extends Controller {
 						'vote_createurs' => $createurs,
 						'valide' => $valide));	
 		}
+	}
+	
+	public function quitterGroupeAction($groupe_id = null) {
+		echo "hello";die;
+	}
+	
+	public function rejoindreGroupeAction($groupe_id = null) {
+		echo "hello";die;
+	}
+	
+	public function supprimerGroupeAction($groupe_id = null) {
+		echo "hello";die;
 	}
 }

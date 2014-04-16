@@ -181,12 +181,22 @@
 	{% if valide is defined %}
 		<center>
 			{% if valide is sameas(true) %}
-				<form action="{{ path('votenmasse_votenmasse_index') }}" method="post">
-					<button class="btn btn-primary btn-mini" type="submit">Quitter le groupe <i class="icon-white icon-ok-sign"></i> </button>
-				</form>
+				{% if administrateur_groupe_infos.login is not sameas(utilisateur)%}
+					<form action="{{ path('votenmasse_votenmasse_quitter_groupe', { 'groupe_id': groupe_id }) }}" method="post">
+						<button class="btn btn-primary btn-mini" type="submit">Quitter le groupe <i class="icon-white icon-ok-sign"></i> </button>
+					</form>
+				{% endif %}
+				{% if administrateur_groupe_infos.login is sameas(utilisateur)%}
+					<form action="{{ path('votenmasse_votenmasse_supprimer_groupe', { 'groupe_id': groupe_id }) }}" method="post">
+						<button class="btn btn-primary btn-mini" type="submit">Supprimer le groupe <i class="icon-white icon-ok-sign"></i> </button>
+					</form>
+				{% endif %}
 			{% endif %}
 			{% if valide is sameas(false) %}
-				<form action="{{ path('votenmasse_votenmasse_index') }}" method="post">
+				<form action="{{ path('votenmasse_votenmasse_rejoindre_groupe', { 'groupe_id': groupe_id }) }}" method="post">
+					<textarea name = "message_rejoindre_groupe" rows="3" cols="20">
+						Justifiez votre demande
+					</textarea><br><br>
 					<button class="btn btn-primary btn-mini" type="submit">Effectuer une demande pour rejoindre le groupe <i class="icon-white icon-ok-sign"></i> </button>
 				</form>
 			{% endif %}

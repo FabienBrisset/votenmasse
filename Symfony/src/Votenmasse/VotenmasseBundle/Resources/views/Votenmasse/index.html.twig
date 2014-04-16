@@ -59,7 +59,7 @@
 												</tr>
 												{% for groupe in groupes %}
 													{% if groupe is not null %}
-														<tr class = "liste_votes" onclick="document.location.href='groupe/{{ groupe.id }}'">
+														<tr class = "liste_groupes" onclick="document.location.href='groupe/{{ groupe.id }}'">
 															<td>
 																{% if groupe.etat is sameas('Groupe public') %}
 																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
@@ -79,6 +79,7 @@
 															</td>
 															<td>
 																<center>{{ groupe.administrateur }}</center>
+															</td>
 														</tr>
 													{% endif %}
 												{% endfor %}

@@ -57,3 +57,15 @@ votenmasse_votenmasse_groupes:
 votenmasse_votenmasse_affichage_groupe:
     pattern: /groupe/{groupe_id}
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:afficherGroupe, groupe_id: null }
+
+votenmasse_votenmasse_rejoindre_groupe:
+    pattern: /groupe/rejoindre/{groupe_id}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:rejoindreGroupe, groupe_id: null }
+
+votenmasse_votenmasse_quitter_groupe:
+    pattern: /groupe/quitter/{groupe_id}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:quitterGroupe, groupe_id: null }
+
+votenmasse_votenmasse_supprimer_groupe:
+    pattern: /groupe/supprimer/{groupe_id}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:supprimerGroupe, groupe_id: null }

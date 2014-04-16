@@ -85,6 +85,12 @@
 								{% endfor %}
 							</table>
 						{% endif %}
+						{% if votes is null %}
+							Aucune participation aux votes de votre part à ce jour
+						{% endif %}
+					{% endif %}
+					{% if votes is not defined %}
+						Aucune participation aux votes de votre part à ce jour
 					{% endif %}
 				</div>
 			</td>

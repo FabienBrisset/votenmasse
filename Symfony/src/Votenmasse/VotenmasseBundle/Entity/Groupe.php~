@@ -48,18 +48,6 @@ class Groupe
      * @ORM\Column(name="description", type="string", length=255)
      */
     private $description;
-	
-	/**
-     * @var boolean
-     *
-     * @ORM\Column(name="actif", type="boolean")
-     */
-    private $actif;
-	
-	public function __construct() {
-		$this->actif = true;
-	}
-
 
     /**
      * Get id

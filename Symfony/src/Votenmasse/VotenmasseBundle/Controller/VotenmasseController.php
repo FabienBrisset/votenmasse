@@ -32,6 +32,41 @@ class VotenmasseController extends Controller {
 			$votes_admin = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
 				->findBy(array('createur' => $utilisateur->getId()), array('dateDeCreation' => 'desc'), 10);
+				
+			$votes_utilisateur_moderation = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+				->findByUtilisateur($utilisateur);
+				
+			foreach ($votes_utilisateur_moderation as $cle => $valeur) {
+				$votes_u_moderateur[] = $valeur->getVote();
+			}
+			
+			$votes_moderation = $votes_admin;
+			
+			if(isset($votes_u_moderateur)) {
+				if (isset($votes_moderation)) {
+					foreach ($votes_u_moderateur as $cle => $valeur) {
+						$votes_moderation[] = $valeur;
+					}
+				}
+				else {
+					foreach ($votes_u_moderateur as $cle => $valeur) {
+						$votes_moderation = $valeur;
+					}
+				}
+			}
+			
+			$votes_moderation_createurs = null;
+		
+			if ($votes_moderation != NULL) {
+				foreach ($votes_moderation as $cle => $valeur) {
+					$vote_moderation_createurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneById($valeur->getCreateur());
+
+					$votes_moderation_createurs[$cle] = $vote_moderation_createurs->getLogin();
+				}		
+			}
 			
 			$votes = $votes_admin;
 				
@@ -48,8 +83,33 @@ class VotenmasseController extends Controller {
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
 				->findByAdministrateur($u);
 				
-			if (isset($groupes_administrateur)) {
-				$groupes[] = $groupes_administrateur;
+			if (isset($groupes_administrateur )) {
+				if ($groupes_administrateur != NULL) {
+					$groupes[] = $groupes_administrateur;
+				}
+			}
+			
+			$groupes_moderation = $groupes_administrateur;
+			
+			$groupes_utilisateur_moderation = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+				->findBy(array('utilisateur' => $utilisateur, 'moderateur' => true));
+				
+			foreach ($groupes_utilisateur_moderation as $cle => $valeur) {
+				$groupes_u_moderateur[] = $valeur->getGroupe();
+			}
+			
+			if(isset($groupes_u_moderateur)) {
+				if (isset($groupes_moderation)) {
+					foreach ($groupes_u_moderateur as $cle => $valeur) {
+						$groupes_moderation[] = $valeur;
+					}
+				}
+				else {
+					foreach ($groupes_u_moderateur as $cle => $valeur) {
+						$groupes_moderation = $valeur;
+					}
+				}
 			}
 			
 			if(isset($groupes_u)) {
@@ -61,23 +121,43 @@ class VotenmasseController extends Controller {
 				}
 			}
 			
-			if (is_array($groupes[0])) {
+			if (is_array($groupes[0]) && $groupes[0] != NULL) {
 				foreach ($groupes as $cle => $valeur) {
 					foreach ($valeur as $key => $value) {
 						$groupes_final[] = $value;
 					}
 				}
 			}
-			else {
+			else if (isset($groupes) && $groupes[0] != NULL) {
 				$groupes_final = $groupes;
+			}
+			else {
+				$groupes_final = NULL;
+			}
+
+			if ($groupes_final != NULL) {
+				foreach ($groupes_final as $cle => $valeur) {
+					if ($valeur->getAdministrateur() != $u) {
+						$accepte = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+						->findOneBy(array('groupe' => $valeur->getId(), 'utilisateur' => $utilisateur));
+
+						$acceptes[$cle] = $accepte->getAccepte();
+					}
+					else {
+						$acceptes[$cle] = true;
+					}
+				}		
 			}
 			
 			$cpt = 0;
 			
-			if (sizeof($groupes_final) > 10) {
-				while ($cpt < (sizeof($groupes_final)-10)) {
-					$groupes_final[$cpt] = null;
-					$cpt++;
+			if ($groupes_final != NULL) {
+				if (sizeof($groupes_final) > 10) {
+					while ($cpt < (sizeof($groupes_final)-10)) {
+						$groupes_final[$cpt] = null;
+						$cpt++;
+					}
 				}
 			}
 			
@@ -113,31 +193,99 @@ class VotenmasseController extends Controller {
 			}
 		
 			if ($votes != NULL && $groupes_final != NULL) {
-				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+				if($groupes_moderation == NULL && $votes_moderation == NULL) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 						'utilisateur' => $session->get('utilisateur'),
 						'votes' => $votes,
 						'vote_createurs' => $createurs,
 						'groupes' => $groupes_final,
 						'last_vote' => $last_vote,
 						'deja_vote' => $avis_existe_deja_pour_last_vote,
-						'last_groupes' => $last_groupes));
+						'last_groupes' => $last_groupes,
+						'acceptes' => $acceptes));
+				}
+				else if($groupes_moderation != NULL && $votes_moderation == NULL) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+						'utilisateur' => $session->get('utilisateur'),
+						'votes' => $votes,
+						'vote_createurs' => $createurs,
+						'groupes' => $groupes_final,
+						'last_vote' => $last_vote,
+						'deja_vote' => $avis_existe_deja_pour_last_vote,
+						'last_groupes' => $last_groupes,
+						'acceptes' => $acceptes,
+						'groupes_moderation' => $groupes_moderation));
+				}
+				else if($groupes_moderation == NULL && $votes_moderation != NULL) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+						'utilisateur' => $session->get('utilisateur'),
+						'votes' => $votes,
+						'vote_createurs' => $createurs,
+						'groupes' => $groupes_final,
+						'last_vote' => $last_vote,
+						'deja_vote' => $avis_existe_deja_pour_last_vote,
+						'last_groupes' => $last_groupes,
+						'acceptes' => $acceptes,
+						'votes_moderation' => $votes_moderation,
+						'votes_moderation_createurs' => $votes_moderation_createurs));
+				}
+				else {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+						'utilisateur' => $session->get('utilisateur'),
+						'votes' => $votes,
+						'vote_createurs' => $createurs,
+						'groupes' => $groupes_final,
+						'last_vote' => $last_vote,
+						'deja_vote' => $avis_existe_deja_pour_last_vote,
+						'last_groupes' => $last_groupes,
+						'acceptes' => $acceptes,
+						'votes_moderation' => $votes_moderation,
+						'groupes_moderation' => $groupes_moderation,
+						'votes_moderation_createurs' => $votes_moderation_createurs));
+				}
 			}
 			else if ($votes != NULL && $groupes_final == NULL) {
-				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+				if($votes_moderation != NULL) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+						'utilisateur' => $session->get('utilisateur'),
+						'votes' => $votes,
+						'vote_createurs' => $createurs,
+						'last_vote' => $last_vote,
+						'deja_vote' => $avis_existe_deja_pour_last_vote,
+						'last_groupes' => $last_groupes,
+						'votes_moderation' => $votes_moderation,
+						'votes_moderation_createurs' => $votes_moderation_createurs));
+				}
+				else {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 						'utilisateur' => $session->get('utilisateur'),
 						'votes' => $votes,
 						'vote_createurs' => $createurs,
 						'last_vote' => $last_vote,
 						'deja_vote' => $avis_existe_deja_pour_last_vote,
 						'last_groupes' => $last_groupes));
+				}
 			}
 			else if ($votes == NULL && $groupes_final != NULL) {
-				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+				if($groupes_moderation != NULL) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
 						'utilisateur' => $session->get('utilisateur'),
 						'groupes' => $groupes_final,
 						'last_vote' => $last_vote,
 						'deja_vote' => $avis_existe_deja_pour_last_vote,
-						'last_groupes' => $last_groupes));
+						'last_groupes' => $last_groupes,
+						'groupes_moderation' => $groupes_moderation,
+						'acceptes' => $acceptes,));
+				}
+				else {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+						'utilisateur' => $session->get('utilisateur'),
+						'groupes' => $groupes_final,
+						'last_vote' => $last_vote,
+						'deja_vote' => $avis_existe_deja_pour_last_vote,
+						'last_groupes' => $last_groupes,
+						'acceptes' => $acceptes));
+				}
 			}
 			else {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
@@ -162,6 +310,7 @@ class VotenmasseController extends Controller {
 			$req_avis_existe_deja_pour_last_vote = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
 				->findOneBy(array('utilisateur' => $invite, 'vote' => $last_vote));
+			
 				
 			if ($req_avis_existe_deja_pour_last_vote != NULL) {
 				$avis_existe_deja_pour_last_vote = true;
@@ -736,7 +885,7 @@ class VotenmasseController extends Controller {
 		if ($u == NULL) {
 			$votes = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Vote')
-					->findBy(array("type" => "Vote public", "groupeAssocie" => NULL), array('dateDeCreation' => 'desc'));
+					->findBy(array("type" => "Vote public"), array('dateDeCreation' => 'desc'));
 			
 			if ($votes == NULL) {
 				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
@@ -1569,7 +1718,7 @@ class VotenmasseController extends Controller {
 		if ($u == NULL) {
 			$votes = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Vote')
-					->findBy(array("type" => "Vote public", "etat" => false, "groupeAssocie" => NULL), array('dateDeCreation' => 'desc'));
+					->findBy(array("type" => "Vote public", "etat" => false), array('dateDeCreation' => 'desc'));
 					
 			if ($votes == NULL) {
 				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
@@ -1581,7 +1730,7 @@ class VotenmasseController extends Controller {
 				->findOneById($valeur->getCreateur());
 				
 			$createurs[$cle] = $createur->getLogin();
-		}
+			}
 			
 			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:resultats.html.twig', array(
 			'votes' => $votes,
@@ -1621,7 +1770,7 @@ class VotenmasseController extends Controller {
 				}
 			}
 		}
-					
+								
 		foreach ($votes as $cle => $valeur) {
 			$createur = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
@@ -1630,10 +1779,21 @@ class VotenmasseController extends Controller {
 			$createurs[$cle] = $createur->getLogin();
 		}
 		
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:resultats.html.twig', array(
-			'utilisateur' => $u,
-			'votes' => $votes,
-			'vote_createurs' => $createurs));
+		if (empty($votes)) {
+			$votes = NULL;
+		}
+		
+		if (isset($createurs)) {
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:resultats.html.twig', array(
+				'utilisateur' => $u,
+				'votes' => $votes,
+				'vote_createurs' => $createurs));
+		}
+		else {
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:resultats.html.twig', array(
+				'utilisateur' => $u,
+				'votes' => $votes));
+		}
 	}
 	
 	// On passe l'id du vote en paramètre
@@ -1684,1860 +1844,3862 @@ class VotenmasseController extends Controller {
 			}
 			
 			if ($u == NULL) {
-				if ($infos_vote->getType() == "Vote public") {
-					if ($infos_vote->getEtat() == true) {
-						$invite = $session->get('invite');
-						
-						$infos_invite = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneByLogin($invite);
-						
-						if ($invite != NULL) {
-							// S'il a déjà voté alors on le redirige vers les commentaires du vote
-							$avis_existe_deja = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
-								->findOneBy(array('utilisateur' => $infos_invite, 'vote' => $infos_vote));
-											
-							if ($avis_existe_deja) {
-								return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $vote)));
-							}
-						}
-						
-						if ($request->getMethod() != 'POST') {
-							$donner_avis = new DonnerAvis;
+				$invite = $session->get('invite');
+				$infos_invite = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($invite);
+				
+				if ($infos_vote->getGroupeAssocie() != NULL) {
+					// On va vérifier que l'invité fait bien parti du groupe
+					$invite_groupe = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+						->findOneBy(array('groupe' => $infos_vote->getGroupeAssocie(), 'utilisateur' => $infos_invite, 'accepte' => true));
 					
-							// S'il n'y a que 2 propositions
-							if ($infos_vote->getChoix3() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 3 propositions
-							else if ($infos_vote->getChoix4() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 4 propositions
-							else if ($infos_vote->getChoix5() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 5 propositions
-							else if ($infos_vote->getChoix6() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->add('choix5', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 6 propositions
-							else if ($infos_vote->getChoix7() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->add('choix5', 'text', array(
-																'mapped' => false))
-										 ->add('choix6', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 7 propositions
-							else if ($infos_vote->getChoix8() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->add('choix5', 'text', array(
-																'mapped' => false))
-										 ->add('choix6', 'text', array(
-																'mapped' => false))
-										 ->add('choix7', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 8 propositions
-							else if ($infos_vote->getChoix9() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->add('choix5', 'text', array(
-																'mapped' => false))
-										 ->add('choix6', 'text', array(
-																'mapped' => false))
-										 ->add('choix7', 'text', array(
-																'mapped' => false))
-										 ->add('choix8', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 9 propositions
-							else if ($infos_vote->getChoix10() == NULL) {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->add('choix5', 'text', array(
-																'mapped' => false))
-										 ->add('choix6', 'text', array(
-																'mapped' => false))
-										 ->add('choix7', 'text', array(
-																'mapped' => false))
-										 ->add('choix8', 'text', array(
-																'mapped' => false))
-										 ->add('choix9', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							// S'il y a 10 propositions
-							else {
-								$form = $this->createFormBuilder($donner_avis)
-										 ->add('choix1', 'text', array(
-																'mapped' => false))
-										 ->add('choix2', 'text', array(
-																'mapped' => false))
-										 ->add('choix3', 'text', array(
-																'mapped' => false))
-										 ->add('choix4', 'text', array(
-																'mapped' => false))
-										 ->add('choix5', 'text', array(
-																'mapped' => false))
-										 ->add('choix6', 'text', array(
-																'mapped' => false))
-										 ->add('choix7', 'text', array(
-																'mapped' => false))
-										 ->add('choix8', 'text', array(
-																'mapped' => false))
-										 ->add('choix9', 'text', array(
-																'mapped' => false))
-										 ->add('choix10', 'text', array(
-																'mapped' => false))
-										 ->getForm();
-							}
-							
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'form' => $form->createView(),
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'choix1' => $infos_vote->getChoix1(),
-								  'choix2' => $infos_vote->getChoix2(),
-								  'choix3' => $infos_vote->getChoix3(),
-								  'choix4' => $infos_vote->getChoix4(),
-								  'choix5' => $infos_vote->getChoix5(),
-								  'choix6' => $infos_vote->getChoix6(),
-								  'choix7' => $infos_vote->getChoix7(),
-								  'choix8' => $infos_vote->getChoix8(),
-								  'choix9' => $infos_vote->getChoix9(),
-								  'choix10' => $infos_vote->getChoix10()
-								));
-						}
-						else {
-							// On met la valeur de la variable de session vote dans fin et vote à null
-							  $session->set('fin', $session->get('vote'));
-							  $session->set('vote', null);
-							
-							  $avis = new DonnerAvis;
-							  
-							  // S'il y avait 10 choix et que tous les choix ne sont pas entre 1 et 10
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix1'] > 10 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 10 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 10 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 10 || $request->request->get("form")['choix4'] < 1 ||
-								$request->request->get("form")['choix5'] > 10 || $request->request->get("form")['choix5'] < 1 ||
-								$request->request->get("form")['choix6'] > 10 || $request->request->get("form")['choix6'] < 1 ||
-								$request->request->get("form")['choix7'] > 10 || $request->request->get("form")['choix7'] < 1 ||
-								$request->request->get("form")['choix8'] > 10 || $request->request->get("form")['choix8'] < 1 ||
-								$request->request->get("form")['choix9'] > 10 || $request->request->get("form")['choix9'] < 1 ||
-								$request->request->get("form")['choix10'] > 10 || $request->request->get("form")['choix10'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							 // S'il y avait 9 choix et que tous les choix ne sont pas entre 1 et 9
-							  else if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix1'] > 9 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 9 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 9 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 9 || $request->request->get("form")['choix4'] < 1 ||
-								$request->request->get("form")['choix5'] > 9 || $request->request->get("form")['choix5'] < 1 ||
-								$request->request->get("form")['choix6'] > 9 || $request->request->get("form")['choix6'] < 1 ||
-								$request->request->get("form")['choix7'] > 9 || $request->request->get("form")['choix7'] < 1 ||
-								$request->request->get("form")['choix8'] > 9 || $request->request->get("form")['choix8'] < 1 ||
-								$request->request->get("form")['choix9'] > 9 || $request->request->get("form")['choix9'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il y avait 8 choix et que tous les choix ne sont pas entre 1 et 8
-							  else if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix1'] > 8 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 8 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 8 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 8 || $request->request->get("form")['choix4'] < 1 ||
-								$request->request->get("form")['choix5'] > 8 || $request->request->get("form")['choix5'] < 1 ||
-								$request->request->get("form")['choix6'] > 8 || $request->request->get("form")['choix6'] < 1 ||
-								$request->request->get("form")['choix7'] > 8 || $request->request->get("form")['choix7'] < 1 ||
-								$request->request->get("form")['choix8'] > 8 || $request->request->get("form")['choix8'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il y avait 7 choix et que tous les choix ne sont pas entre 1 et 7
-							  else if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix1'] > 7 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 7 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 7 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 7 || $request->request->get("form")['choix4'] < 1 ||
-								$request->request->get("form")['choix5'] > 7 || $request->request->get("form")['choix5'] < 1 ||
-								$request->request->get("form")['choix6'] > 7 || $request->request->get("form")['choix6'] < 1 ||
-								$request->request->get("form")['choix7'] > 7 || $request->request->get("form")['choix7'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il y avait 6 choix et que tous les choix ne sont pas entre 1 et 6
-							  else if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix1'] > 6 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 6 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 6 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 6 || $request->request->get("form")['choix4'] < 1 ||
-								$request->request->get("form")['choix5'] > 6 || $request->request->get("form")['choix5'] < 1 ||
-								$request->request->get("form")['choix6'] > 6 || $request->request->get("form")['choix6'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il y avait 5 choix et que tous les choix ne sont pas entre 1 et 5
-							  else if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix1'] > 5 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 5 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 5 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 5 || $request->request->get("form")['choix4'] < 1 ||
-								$request->request->get("form")['choix5'] > 5 || $request->request->get("form")['choix5'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il y avait 4 choix et que tous les choix ne sont pas entre 1 et 4
-							  else if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix1'] > 4 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 4 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 4 || $request->request->get("form")['choix3'] < 1 ||
-								$request->request->get("form")['choix4'] > 4 || $request->request->get("form")['choix4'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il y avait 3 choix et que tous les choix ne sont pas entre 1 et 3
-							  else if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix1'] > 3 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 3 || $request->request->get("form")['choix2'] < 1 ||
-								$request->request->get("form")['choix3'] > 3 || $request->request->get("form")['choix3'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  // S'il n'y avait que 2 choix et que tous les choix ne sont pas entre 1 et 2
-							  else {
-								if ($request->request->get("form")['choix1'] > 2 || $request->request->get("form")['choix1'] < 1 ||
-								$request->request->get("form")['choix2'] > 2 || $request->request->get("form")['choix2'] < 1) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-							  }
-							  
-							  // A partir d'ici on a tester tous les choix pour voir lequel est classé en numéro 1, 2, ... et on les stocke
-							  if ($request->request->get("form")['choix1'] == '1') {
-								$choix1 = 1;
-								$avis->setChoix1($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '1') {
-								// On vérifie que deux choix ne soient pas identiques
-								if (isset($choix1)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix1 = 2;
-									$avis->setChoix1($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 3;
-										$avis->setChoix1($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 4;
-										$avis->setChoix1($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 5;
-										$avis->setChoix1($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 6;
-										$avis->setChoix1($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 7;
-										$avis->setChoix1($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 8;
-										$avis->setChoix1($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 9;
-										$avis->setChoix1($infos_vote->getChoix9());
-									}
-								}
-							  }
-							 if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '1') {
-									if (isset($choix1)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix1 = 10;
-										$avis->setChoix1($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '2') {
-								$choix2 = 1;
-								$avis->setChoix2($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '2') {
-								if (isset($choix2)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix2 = 2;
-									$avis->setChoix2($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 3;
-										$avis->setChoix2($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 4;
-										$avis->setChoix2($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 5;
-										$avis->setChoix2($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 6;
-										$avis->setChoix2($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 7;
-										$avis->setChoix2($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 8;
-										$avis->setChoix2($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 9;
-										$avis->setChoix2($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '2') {
-									if (isset($choix2)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix2 = 10;
-										$avis->setChoix2($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '3') {
-								$choix3 = 1;
-								$avis->setChoix3($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '3') {
-								if (isset($choix3)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix3 = 2;
-									$avis->setChoix3($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 3;
-										$avis->setChoix3($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 4;
-										$avis->setChoix3($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 5;
-										$avis->setChoix3($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 6;
-										$avis->setChoix3($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 7;
-										$avis->setChoix3($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 8;
-										$avis->setChoix3($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 9;
-										$avis->setChoix3($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '3') {
-									if (isset($choix3)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix3 = 10;
-										$avis->setChoix3($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '4') {
-								$choix4 = 1;
-								$avis->setChoix4($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '4') {
-								if (isset($choix4)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix4 = 2;
-									$avis->setChoix4($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 3;
-										$avis->setChoix4($infos_vote->getChoix3());
-									}
-								}
-							  }
-							 if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 4;
-										$avis->setChoix4($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 5;
-										$avis->setChoix4($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 6;
-										$avis->setChoix4($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 7;
-										$avis->setChoix4($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 8;
-										$avis->setChoix4($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 9;
-										$avis->setChoix4($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '4') {
-									if (isset($choix4)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix4 = 10;
-										$avis->setChoix4($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '5') {
-								$choix5 = 1;
-								$avis->setChoix5($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '5') {
-								if (isset($choix5)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix5 = 2;
-									$avis->setChoix5($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 3;
-										$avis->setChoix5($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 4;
-										$avis->setChoix5($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 5;
-										$avis->setChoix5($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 6;
-										$avis->setChoix5($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 7;
-										$avis->setChoix5($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 8;
-										$avis->setChoix5($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 9;
-										$avis->setChoix5($infos_vote->getChoix9());
-									}
-								  }
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '5') {
-									if (isset($choix5)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix5 = 10;
-										$avis->setChoix5($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '6') {
-								$choix6 = 1;
-								$avis->setChoix6($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '6') {
-								if (isset($choix6)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix6 = 2;
-									$avis->setChoix6($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 3;
-										$avis->setChoix6($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 4;
-										$avis->setChoix6($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 5;
-										$avis->setChoix6($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 6;
-										$avis->setChoix6($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 7;
-										$avis->setChoix6($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 8;
-										$avis->setChoix6($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 9;
-										$avis->setChoix6($infos_vote->getChoix9());
-									}
-								}
-							  }
-							   if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '6') {
-									if (isset($choix6)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix6 = 10;
-										$avis->setChoix6($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '7') {
-								$choix7 = 1;
-								$avis->setChoix7($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '7') {
-								if (isset($choix7)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix7 = 2;
-									$avis->setChoix7($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 3;
-										$avis->setChoix7($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 4;
-										$avis->setChoix7($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 5;
-										$avis->setChoix7($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 6;
-										$avis->setChoix7($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 7;
-										$avis->setChoix7($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 8;
-										$avis->setChoix7($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 9;
-										$avis->setChoix7($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '7') {
-									if (isset($choix7)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix7 = 10;
-										$avis->setChoix7($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '8') {
-								$choix8 = 1;
-								$avis->setChoix8($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '8') {
-								if (isset($choix8)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix8 = 2;
-									$avis->setChoix8($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 3;
-										$avis->setChoix8($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 4;
-										$avis->setChoix8($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '8') {	
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 5;
-										$avis->setChoix8($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 6;
-										$avis->setChoix8($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 7;
-										$avis->setChoix8($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 8;
-										$avis->setChoix8($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 9;
-										$avis->setChoix8($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix9'] == '8') {
-									if (isset($choix8)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix8 = 10;
-										$avis->setChoix8($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '9') {
-								$choix9 = 1;
-								$avis->setChoix9($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '9') {
-								if (isset($choix9)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix9 = 2;
-									$avis->setChoix9($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 3;
-										$avis->setChoix9($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 4;
-										$avis->setChoix9($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 5;
-										$avis->setChoix9($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 6;
-										$avis->setChoix9($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 7;
-										$avis->setChoix9($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 8;
-										$avis->setChoix9($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 9;
-										$avis->setChoix9($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '9') {
-									if (isset($choix9)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix9 = 10;
-										$avis->setChoix2($infos_vote->getChoix10());
-									}
-								}
-							  }
-							  
-							  if ($request->request->get("form")['choix1'] == '10') {
-								$choix10 = 1;
-								$avis->setChoix10($infos_vote->getChoix1());
-							  }
-							  if ($request->request->get("form")['choix2'] == '10') {
-								if (isset($choix10)) {
-									return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-								}
-								else {
-									$choix10 = 2;
-									$avis->setChoix10($infos_vote->getChoix2());
-								}
-							  }
-							  if (isset($request->request->get("form")['choix3'])) {
-								if ($request->request->get("form")['choix3'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 3;
-										$avis->setChoix10($infos_vote->getChoix3());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix4'])) {
-								if ($request->request->get("form")['choix4'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 4;
-										$avis->setChoix10($infos_vote->getChoix4());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix5'])) {
-								if ($request->request->get("form")['choix5'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 5;
-										$avis->setChoix10($infos_vote->getChoix5());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix6'])) {
-								if ($request->request->get("form")['choix6'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 6;
-										$avis->setChoix10($infos_vote->getChoix6());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix7'])) {
-								if ($request->request->get("form")['choix7'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 7;
-										$avis->setChoix10($infos_vote->getChoix7());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix8'])) {
-								if ($request->request->get("form")['choix8'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 8;
-										$avis->setChoix10($infos_vote->getChoix8());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix9'])) {
-								if ($request->request->get("form")['choix9'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 9;
-										$avis->setChoix10($infos_vote->getChoix9());
-									}
-								}
-							  }
-							  if (isset($request->request->get("form")['choix10'])) {
-								if ($request->request->get("form")['choix10'] == '10') {
-									if (isset($choix10)) {
-										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
-									}
-									else {
-										$choix10 = 10;
-										$avis->setChoix10($infos_vote->getChoix10());
+					if($invite_groupe != NULL) {
+						if ($infos_vote->getType() == "Vote public") {
+							if ($infos_vote->getEtat() == true) {					
+								if ($invite != NULL) {
+									// S'il a déjà voté alors on le redirige vers les commentaires du vote
+									$avis_existe_deja = $this->getDoctrine()
+										->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+										->findOneBy(array('utilisateur' => $infos_invite, 'vote' => $infos_vote));
+													
+									if ($avis_existe_deja) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $vote)));
 									}
 								}
-							  }
 								
-							  // On enregistre le donnerAvis
-							  $avis->setVote($infos_vote);	
-							  
-							  $utilisateur = new Utilisateur;
-							  
-							  $pass = "abcdefghijklmnopqrstuvwxyz987654321012345643198536985prokfjaidinend";
-							  $pass_md5 = md5($pass);
-								
-							  $utilisateur->setMotDePasse($pass_md5);
-							  $date = date_create(date('Y-m-d'));
-							  
-							  $utilisateur->setDateDeNaissance($date);
-							  $utilisateur->setSexe('H');
-							  
-							  $em = $this->getDoctrine()->getManager();
-							  $req_max_id = $em->createQuery(
-								'SELECT MAX(u.id) AS max_id
-								FROM VotenmasseVotenmasseBundle:Utilisateur u');
-
-							  $max_id = $req_max_id->getResult();
-
-							  $base = "Invité_";
-							  $num = $max_id[0]["max_id"] + 1;
-							  $invite = $base.$num;
-							  
-							  $utilisateur->setMail($invite."@fake.com");
-							  $utilisateur->setPrenom($invite);
-							  $utilisateur->setNom($invite);
-							  $utilisateur->setLogin($invite);
-							  
-							  $session->set('invite', $invite);
+								if ($request->getMethod() != 'POST') {
+									$donner_avis = new DonnerAvis;
+							
+									// S'il n'y a que 2 propositions
+									if ($infos_vote->getChoix3() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 3 propositions
+									else if ($infos_vote->getChoix4() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 4 propositions
+									else if ($infos_vote->getChoix5() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 5 propositions
+									else if ($infos_vote->getChoix6() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->add('choix5', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 6 propositions
+									else if ($infos_vote->getChoix7() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->add('choix5', 'text', array(
+																		'mapped' => false))
+												 ->add('choix6', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 7 propositions
+									else if ($infos_vote->getChoix8() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->add('choix5', 'text', array(
+																		'mapped' => false))
+												 ->add('choix6', 'text', array(
+																		'mapped' => false))
+												 ->add('choix7', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 8 propositions
+									else if ($infos_vote->getChoix9() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->add('choix5', 'text', array(
+																		'mapped' => false))
+												 ->add('choix6', 'text', array(
+																		'mapped' => false))
+												 ->add('choix7', 'text', array(
+																		'mapped' => false))
+												 ->add('choix8', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 9 propositions
+									else if ($infos_vote->getChoix10() == NULL) {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->add('choix5', 'text', array(
+																		'mapped' => false))
+												 ->add('choix6', 'text', array(
+																		'mapped' => false))
+												 ->add('choix7', 'text', array(
+																		'mapped' => false))
+												 ->add('choix8', 'text', array(
+																		'mapped' => false))
+												 ->add('choix9', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
+									// S'il y a 10 propositions
+									else {
+										$form = $this->createFormBuilder($donner_avis)
+												 ->add('choix1', 'text', array(
+																		'mapped' => false))
+												 ->add('choix2', 'text', array(
+																		'mapped' => false))
+												 ->add('choix3', 'text', array(
+																		'mapped' => false))
+												 ->add('choix4', 'text', array(
+																		'mapped' => false))
+												 ->add('choix5', 'text', array(
+																		'mapped' => false))
+												 ->add('choix6', 'text', array(
+																		'mapped' => false))
+												 ->add('choix7', 'text', array(
+																		'mapped' => false))
+												 ->add('choix8', 'text', array(
+																		'mapped' => false))
+												 ->add('choix9', 'text', array(
+																		'mapped' => false))
+												 ->add('choix10', 'text', array(
+																		'mapped' => false))
+												 ->getForm();
+									}
 									
-							  // On enregistre notre objet $utilisateur dans la base de données
-							  $em->persist($utilisateur);
-							  $em->flush();
-							  
-							  $avis->setUtilisateur($utilisateur);
-								
-							  $em = $this->getDoctrine()->getManager();
-							  $em->persist($avis);
-							  $em->flush();
-							  
-							  // On redirige vers la page de commentaires du vote en question
-							  return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $session->get('fin'), 'supp' => true)));
-						}
-					}
-					else {
-						// Afficher le résultat
-						
-						// Première position
-						$em = $this->getDoctrine()->getManager();
-					    $choix_premiere_position = $em->createQuery(
-							"SELECT DISTINCT da.choix1
-							FROM VotenmasseVotenmasseBundle:DonnerAvis da
-							WHERE da.vote = ".$vote);
-
-					    $choix_premiere_position_result = $choix_premiere_position->getResult();
-						
-						$count_choix_premiere_position = array();
-						
-						$cpt = 0;
-
-						foreach ($choix_premiere_position_result as $cle => $valeur) {
-							foreach ($valeur as $key => $value) {
-								if ($value != NULL) {
-									 $data = addslashes($value);
-									 $count_choix_premiere_position[$cpt] = $em->createQuery(
-										"SELECT COUNT(da.choix1) as nb_choix1
-										FROM VotenmasseVotenmasseBundle:DonnerAvis da
-										WHERE da.vote = ".$vote."
-										AND da.choix1 = :value")
-										->setParameter('value', $value);;
-										
-									 $count_choix_premiere_position_result[$cpt] = $count_choix_premiere_position[$cpt]->getResult();
-									 $cpt++;
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'form' => $form->createView(),
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'choix1' => $infos_vote->getChoix1(),
+										  'choix2' => $infos_vote->getChoix2(),
+										  'choix3' => $infos_vote->getChoix3(),
+										  'choix4' => $infos_vote->getChoix4(),
+										  'choix5' => $infos_vote->getChoix5(),
+										  'choix6' => $infos_vote->getChoix6(),
+										  'choix7' => $infos_vote->getChoix7(),
+										  'choix8' => $infos_vote->getChoix8(),
+										  'choix9' => $infos_vote->getChoix9(),
+										  'choix10' => $infos_vote->getChoix10()
+										));
 								}
 								else {
-									$count_choix_premiere_position_result = $count_choix_premiere_position;
-								}
-							}
-						}	
-						
-						if (isset($count_choix_premiere_position_result)) {
-						
-							if ($count_choix_premiere_position_result != null) {
-								$premiere_position = (-1);
-								$count_nb_premiere_position = 0;
-								
-								foreach ($count_choix_premiere_position_result as $cle => $valeur) {
-									foreach ($valeur as $key => $value) {
-										if ($value['nb_choix1'] > $count_nb_premiere_position) {
-											$premiere_position = $cle;
-											$count_nb_premiere_position = $value['nb_choix1'];
+									// On met la valeur de la variable de session vote dans fin et vote à null
+									  $session->set('fin', $session->get('vote'));
+									  $session->set('vote', null);
+									
+									  $avis = new DonnerAvis;
+									  
+									  // S'il y avait 10 choix et que tous les choix ne sont pas entre 1 et 10
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix1'] > 10 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 10 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 10 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 10 || $request->request->get("form")['choix4'] < 1 ||
+										$request->request->get("form")['choix5'] > 10 || $request->request->get("form")['choix5'] < 1 ||
+										$request->request->get("form")['choix6'] > 10 || $request->request->get("form")['choix6'] < 1 ||
+										$request->request->get("form")['choix7'] > 10 || $request->request->get("form")['choix7'] < 1 ||
+										$request->request->get("form")['choix8'] > 10 || $request->request->get("form")['choix8'] < 1 ||
+										$request->request->get("form")['choix9'] > 10 || $request->request->get("form")['choix9'] < 1 ||
+										$request->request->get("form")['choix10'] > 10 || $request->request->get("form")['choix10'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
 										}
-									}
-								}
-								$premier = $choix_premiere_position_result[$premiere_position]["choix1"];
-							}
-							
-							// Seconde position
-							$choix_seconde_position = $em->createQuery(
-								"SELECT DISTINCT da.choix2
-								FROM VotenmasseVotenmasseBundle:DonnerAvis da
-								WHERE da.vote = ".$vote."
-								AND da.choix2 != :premier")
-								->setParameter('premier', $premier);				
-
-							$choix_seconde_position_result = $choix_seconde_position->getResult();
-							
-							$count_choix_seconde_position = array();
-							
-							$cpt = 0;
-
-							foreach ($choix_seconde_position_result as $cle => $valeur) {
-								foreach ($valeur as $key => $value) {
-									if ($value != NULL) {
-										 $count_choix_seconde_position = $em->createQuery(
-											"SELECT COUNT(da.choix2) as nb_choix2
-											FROM VotenmasseVotenmasseBundle:DonnerAvis da
-											WHERE da.vote = ".$vote."
-											AND da.choix2 = :value")
-											->setParameter('value', $value);
-										 
-										 $count_choix_seconde_position_result[$cpt] = $count_choix_seconde_position->getResult();
-										 $cpt++;
-									}
-									else {
-										$count_choix_seconde_position_result = $count_choix_seconde_position;
-									}
-								}
-							}
-							
-							if (isset($count_choix_seconde_position_result)) {
-								if ($count_choix_seconde_position_result != null) {
-									$seconde_position = (-1);
-									$count_nb_seconde_position = 0;
-									
-									foreach ($count_choix_seconde_position_result as $cle => $valeur) {
-										foreach ($valeur as $key => $value) {
-											if ($value['nb_choix2'] > $count_nb_seconde_position) {
-												$seconde_position = $cle;
-												$count_nb_seconde_position = $value['nb_choix2'];
+									  }
+									 // S'il y avait 9 choix et que tous les choix ne sont pas entre 1 et 9
+									  else if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix1'] > 9 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 9 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 9 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 9 || $request->request->get("form")['choix4'] < 1 ||
+										$request->request->get("form")['choix5'] > 9 || $request->request->get("form")['choix5'] < 1 ||
+										$request->request->get("form")['choix6'] > 9 || $request->request->get("form")['choix6'] < 1 ||
+										$request->request->get("form")['choix7'] > 9 || $request->request->get("form")['choix7'] < 1 ||
+										$request->request->get("form")['choix8'] > 9 || $request->request->get("form")['choix8'] < 1 ||
+										$request->request->get("form")['choix9'] > 9 || $request->request->get("form")['choix9'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il y avait 8 choix et que tous les choix ne sont pas entre 1 et 8
+									  else if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix1'] > 8 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 8 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 8 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 8 || $request->request->get("form")['choix4'] < 1 ||
+										$request->request->get("form")['choix5'] > 8 || $request->request->get("form")['choix5'] < 1 ||
+										$request->request->get("form")['choix6'] > 8 || $request->request->get("form")['choix6'] < 1 ||
+										$request->request->get("form")['choix7'] > 8 || $request->request->get("form")['choix7'] < 1 ||
+										$request->request->get("form")['choix8'] > 8 || $request->request->get("form")['choix8'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il y avait 7 choix et que tous les choix ne sont pas entre 1 et 7
+									  else if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix1'] > 7 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 7 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 7 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 7 || $request->request->get("form")['choix4'] < 1 ||
+										$request->request->get("form")['choix5'] > 7 || $request->request->get("form")['choix5'] < 1 ||
+										$request->request->get("form")['choix6'] > 7 || $request->request->get("form")['choix6'] < 1 ||
+										$request->request->get("form")['choix7'] > 7 || $request->request->get("form")['choix7'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il y avait 6 choix et que tous les choix ne sont pas entre 1 et 6
+									  else if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix1'] > 6 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 6 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 6 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 6 || $request->request->get("form")['choix4'] < 1 ||
+										$request->request->get("form")['choix5'] > 6 || $request->request->get("form")['choix5'] < 1 ||
+										$request->request->get("form")['choix6'] > 6 || $request->request->get("form")['choix6'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il y avait 5 choix et que tous les choix ne sont pas entre 1 et 5
+									  else if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix1'] > 5 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 5 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 5 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 5 || $request->request->get("form")['choix4'] < 1 ||
+										$request->request->get("form")['choix5'] > 5 || $request->request->get("form")['choix5'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il y avait 4 choix et que tous les choix ne sont pas entre 1 et 4
+									  else if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix1'] > 4 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 4 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 4 || $request->request->get("form")['choix3'] < 1 ||
+										$request->request->get("form")['choix4'] > 4 || $request->request->get("form")['choix4'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il y avait 3 choix et que tous les choix ne sont pas entre 1 et 3
+									  else if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix1'] > 3 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 3 || $request->request->get("form")['choix2'] < 1 ||
+										$request->request->get("form")['choix3'] > 3 || $request->request->get("form")['choix3'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  // S'il n'y avait que 2 choix et que tous les choix ne sont pas entre 1 et 2
+									  else {
+										if ($request->request->get("form")['choix1'] > 2 || $request->request->get("form")['choix1'] < 1 ||
+										$request->request->get("form")['choix2'] > 2 || $request->request->get("form")['choix2'] < 1) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+									  }
+									  
+									  // A partir d'ici on a tester tous les choix pour voir lequel est classé en numéro 1, 2, ... et on les stocke
+									  if ($request->request->get("form")['choix1'] == '1') {
+										$choix1 = 1;
+										$avis->setChoix1($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '1') {
+										// On vérifie que deux choix ne soient pas identiques
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 2;
+											$avis->setChoix1($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 3;
+												$avis->setChoix1($infos_vote->getChoix3());
 											}
 										}
-									}
-									$second = $choix_seconde_position_result[$seconde_position]["choix2"];
-								}
-								
-								// Troisieme position
-								$choix_troisieme_position = $em->createQuery(
-									"SELECT DISTINCT da.choix3
-									FROM VotenmasseVotenmasseBundle:DonnerAvis da
-									WHERE da.vote = ".$vote."
-									AND da.choix3 NOT IN (:premier, :second)")
-									->setParameter('premier', $premier)
-									->setParameter('second', $second);	
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 4;
+												$avis->setChoix1($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 5;
+												$avis->setChoix1($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 6;
+												$avis->setChoix1($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 7;
+												$avis->setChoix1($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 8;
+												$avis->setChoix1($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 9;
+												$avis->setChoix1($infos_vote->getChoix9());
+											}
+										}
+									  }
+									 if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '1') {
+											if (isset($choix1)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix1 = 10;
+												$avis->setChoix1($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '2') {
+										$choix2 = 1;
+										$avis->setChoix2($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 2;
+											$avis->setChoix2($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 3;
+												$avis->setChoix2($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 4;
+												$avis->setChoix2($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 5;
+												$avis->setChoix2($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 6;
+												$avis->setChoix2($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 7;
+												$avis->setChoix2($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 8;
+												$avis->setChoix2($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 9;
+												$avis->setChoix2($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '2') {
+											if (isset($choix2)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix2 = 10;
+												$avis->setChoix2($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '3') {
+										$choix3 = 1;
+										$avis->setChoix3($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 2;
+											$avis->setChoix3($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 3;
+												$avis->setChoix3($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 4;
+												$avis->setChoix3($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 5;
+												$avis->setChoix3($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 6;
+												$avis->setChoix3($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 7;
+												$avis->setChoix3($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 8;
+												$avis->setChoix3($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 9;
+												$avis->setChoix3($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '3') {
+											if (isset($choix3)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix3 = 10;
+												$avis->setChoix3($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '4') {
+										$choix4 = 1;
+										$avis->setChoix4($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 2;
+											$avis->setChoix4($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 3;
+												$avis->setChoix4($infos_vote->getChoix3());
+											}
+										}
+									  }
+									 if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 4;
+												$avis->setChoix4($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 5;
+												$avis->setChoix4($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 6;
+												$avis->setChoix4($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 7;
+												$avis->setChoix4($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 8;
+												$avis->setChoix4($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 9;
+												$avis->setChoix4($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '4') {
+											if (isset($choix4)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix4 = 10;
+												$avis->setChoix4($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '5') {
+										$choix5 = 1;
+										$avis->setChoix5($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 2;
+											$avis->setChoix5($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 3;
+												$avis->setChoix5($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 4;
+												$avis->setChoix5($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 5;
+												$avis->setChoix5($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 6;
+												$avis->setChoix5($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 7;
+												$avis->setChoix5($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 8;
+												$avis->setChoix5($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 9;
+												$avis->setChoix5($infos_vote->getChoix9());
+											}
+										  }
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '5') {
+											if (isset($choix5)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix5 = 10;
+												$avis->setChoix5($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '6') {
+										$choix6 = 1;
+										$avis->setChoix6($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 2;
+											$avis->setChoix6($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 3;
+												$avis->setChoix6($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 4;
+												$avis->setChoix6($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 5;
+												$avis->setChoix6($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 6;
+												$avis->setChoix6($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 7;
+												$avis->setChoix6($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 8;
+												$avis->setChoix6($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 9;
+												$avis->setChoix6($infos_vote->getChoix9());
+											}
+										}
+									  }
+									   if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '6') {
+											if (isset($choix6)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix6 = 10;
+												$avis->setChoix6($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '7') {
+										$choix7 = 1;
+										$avis->setChoix7($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 2;
+											$avis->setChoix7($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 3;
+												$avis->setChoix7($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 4;
+												$avis->setChoix7($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 5;
+												$avis->setChoix7($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 6;
+												$avis->setChoix7($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 7;
+												$avis->setChoix7($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 8;
+												$avis->setChoix7($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 9;
+												$avis->setChoix7($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '7') {
+											if (isset($choix7)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix7 = 10;
+												$avis->setChoix7($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '8') {
+										$choix8 = 1;
+										$avis->setChoix8($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 2;
+											$avis->setChoix8($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 3;
+												$avis->setChoix8($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 4;
+												$avis->setChoix8($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '8') {	
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 5;
+												$avis->setChoix8($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 6;
+												$avis->setChoix8($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 7;
+												$avis->setChoix8($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 8;
+												$avis->setChoix8($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 9;
+												$avis->setChoix8($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix9'] == '8') {
+											if (isset($choix8)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix8 = 10;
+												$avis->setChoix8($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '9') {
+										$choix9 = 1;
+										$avis->setChoix9($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 2;
+											$avis->setChoix9($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 3;
+												$avis->setChoix9($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 4;
+												$avis->setChoix9($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 5;
+												$avis->setChoix9($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 6;
+												$avis->setChoix9($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 7;
+												$avis->setChoix9($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 8;
+												$avis->setChoix9($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 9;
+												$avis->setChoix9($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '9') {
+											if (isset($choix9)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix9 = 10;
+												$avis->setChoix2($infos_vote->getChoix10());
+											}
+										}
+									  }
+									  
+									  if ($request->request->get("form")['choix1'] == '10') {
+										$choix10 = 1;
+										$avis->setChoix10($infos_vote->getChoix1());
+									  }
+									  if ($request->request->get("form")['choix2'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 2;
+											$avis->setChoix10($infos_vote->getChoix2());
+										}
+									  }
+									  if (isset($request->request->get("form")['choix3'])) {
+										if ($request->request->get("form")['choix3'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 3;
+												$avis->setChoix10($infos_vote->getChoix3());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix4'])) {
+										if ($request->request->get("form")['choix4'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 4;
+												$avis->setChoix10($infos_vote->getChoix4());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix5'])) {
+										if ($request->request->get("form")['choix5'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 5;
+												$avis->setChoix10($infos_vote->getChoix5());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix6'])) {
+										if ($request->request->get("form")['choix6'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 6;
+												$avis->setChoix10($infos_vote->getChoix6());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix7'])) {
+										if ($request->request->get("form")['choix7'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 7;
+												$avis->setChoix10($infos_vote->getChoix7());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix8'])) {
+										if ($request->request->get("form")['choix8'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 8;
+												$avis->setChoix10($infos_vote->getChoix8());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix9'])) {
+										if ($request->request->get("form")['choix9'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 9;
+												$avis->setChoix10($infos_vote->getChoix9());
+											}
+										}
+									  }
+									  if (isset($request->request->get("form")['choix10'])) {
+										if ($request->request->get("form")['choix10'] == '10') {
+											if (isset($choix10)) {
+												return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+											}
+											else {
+												$choix10 = 10;
+												$avis->setChoix10($infos_vote->getChoix10());
+											}
+										}
+									  }
+										
+									  // On enregistre le donnerAvis
+									  $avis->setVote($infos_vote);	
+									  
+									  $utilisateur = new Utilisateur;
+									  
+									  $pass = "abcdefghijklmnopqrstuvwxyz987654321012345643198536985prokfjaidinend";
+									  $pass_md5 = md5($pass);
+										
+									  $utilisateur->setMotDePasse($pass_md5);
+									  $date = date_create(date('Y-m-d'));
+									  
+									  $utilisateur->setDateDeNaissance($date);
+									  $utilisateur->setSexe('H');
+									  
+									  $em = $this->getDoctrine()->getManager();
+									  $req_max_id = $em->createQuery(
+										'SELECT MAX(u.id) AS max_id
+										FROM VotenmasseVotenmasseBundle:Utilisateur u');
 
-								$choix_troisieme_position_result = $choix_troisieme_position->getResult();
+									  $max_id = $req_max_id->getResult();
+
+									  $base = "Invité_";
+									  $num = $max_id[0]["max_id"] + 1;
+									  $invite = $base.$num;
+									  
+									  $utilisateur->setMail($invite."@fake.com");
+									  $utilisateur->setPrenom($invite);
+									  $utilisateur->setNom($invite);
+									  $utilisateur->setLogin($invite);
+									  
+									  $session->set('invite', $invite);
+											
+									  // On enregistre notre objet $utilisateur dans la base de données
+									  $em->persist($utilisateur);
+									  $em->flush();
+									  
+									  $avis->setUtilisateur($utilisateur);
+										
+									  $em = $this->getDoctrine()->getManager();
+									  $em->persist($avis);
+									  $em->flush();
+									  
+									  // On redirige vers la page de commentaires du vote en question
+									  return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $session->get('fin'), 'supp' => true)));
+								}
+							}
+							else {
+								// Afficher le résultat
 								
-								$count_choix_troisieme_position = array();
+								// Première position
+								$em = $this->getDoctrine()->getManager();
+								$choix_premiere_position = $em->createQuery(
+									"SELECT DISTINCT da.choix1
+									FROM VotenmasseVotenmasseBundle:DonnerAvis da
+									WHERE da.vote = ".$vote);
+
+								$choix_premiere_position_result = $choix_premiere_position->getResult();
+								
+								$count_choix_premiere_position = array();
 								
 								$cpt = 0;
 
-								foreach ($choix_troisieme_position_result as $cle => $valeur) {
+								foreach ($choix_premiere_position_result as $cle => $valeur) {
 									foreach ($valeur as $key => $value) {
 										if ($value != NULL) {
-											 $count_choix_troisieme_position = $em->createQuery(
-												"SELECT COUNT(da.choix3) as nb_choix3
+											 $data = addslashes($value);
+											 $count_choix_premiere_position[$cpt] = $em->createQuery(
+												"SELECT COUNT(da.choix1) as nb_choix1
 												FROM VotenmasseVotenmasseBundle:DonnerAvis da
 												WHERE da.vote = ".$vote."
-												AND da.choix3 = :value")
-												->setParameter('value', $value);
-
-											 $count_choix_troisieme_position_result[$cpt] = $count_choix_troisieme_position->getResult();
+												AND da.choix1 = :value")
+												->setParameter('value', $value);;
+												
+											 $count_choix_premiere_position_result[$cpt] = $count_choix_premiere_position[$cpt]->getResult();
 											 $cpt++;
 										}
 										else {
-											$count_choix_troisieme_position_result = $count_choix_troisieme_position;
+											$count_choix_premiere_position_result = $count_choix_premiere_position;
+										}
+									}
+								}	
+								
+								if (isset($count_choix_premiere_position_result)) {
+								
+									if ($count_choix_premiere_position_result != null) {
+										$premiere_position = (-1);
+										$count_nb_premiere_position = 0;
+										
+										foreach ($count_choix_premiere_position_result as $cle => $valeur) {
+											foreach ($valeur as $key => $value) {
+												if ($value['nb_choix1'] > $count_nb_premiere_position) {
+													$premiere_position = $cle;
+													$count_nb_premiere_position = $value['nb_choix1'];
+												}
+											}
+										}
+										$premier = $choix_premiere_position_result[$premiere_position]["choix1"];
+									}
+									
+									// Seconde position
+									$choix_seconde_position = $em->createQuery(
+										"SELECT DISTINCT da.choix2
+										FROM VotenmasseVotenmasseBundle:DonnerAvis da
+										WHERE da.vote = ".$vote."
+										AND da.choix2 != :premier")
+										->setParameter('premier', $premier);				
+
+									$choix_seconde_position_result = $choix_seconde_position->getResult();
+									
+									$count_choix_seconde_position = array();
+									
+									$cpt = 0;
+
+									foreach ($choix_seconde_position_result as $cle => $valeur) {
+										foreach ($valeur as $key => $value) {
+											if ($value != NULL) {
+												 $count_choix_seconde_position = $em->createQuery(
+													"SELECT COUNT(da.choix2) as nb_choix2
+													FROM VotenmasseVotenmasseBundle:DonnerAvis da
+													WHERE da.vote = ".$vote."
+													AND da.choix2 = :value")
+													->setParameter('value', $value);
+												 
+												 $count_choix_seconde_position_result[$cpt] = $count_choix_seconde_position->getResult();
+												 $cpt++;
+											}
+											else {
+												$count_choix_seconde_position_result = $count_choix_seconde_position;
+											}
+										}
+									}
+									
+									if (isset($count_choix_seconde_position_result)) {
+										if ($count_choix_seconde_position_result != null) {
+											$seconde_position = (-1);
+											$count_nb_seconde_position = 0;
+											
+											foreach ($count_choix_seconde_position_result as $cle => $valeur) {
+												foreach ($valeur as $key => $value) {
+													if ($value['nb_choix2'] > $count_nb_seconde_position) {
+														$seconde_position = $cle;
+														$count_nb_seconde_position = $value['nb_choix2'];
+													}
+												}
+											}
+											$second = $choix_seconde_position_result[$seconde_position]["choix2"];
+										}
+										
+										// Troisieme position
+										$choix_troisieme_position = $em->createQuery(
+											"SELECT DISTINCT da.choix3
+											FROM VotenmasseVotenmasseBundle:DonnerAvis da
+											WHERE da.vote = ".$vote."
+											AND da.choix3 NOT IN (:premier, :second)")
+											->setParameter('premier', $premier)
+											->setParameter('second', $second);	
+
+										$choix_troisieme_position_result = $choix_troisieme_position->getResult();
+										
+										$count_choix_troisieme_position = array();
+										
+										$cpt = 0;
+
+										foreach ($choix_troisieme_position_result as $cle => $valeur) {
+											foreach ($valeur as $key => $value) {
+												if ($value != NULL) {
+													 $count_choix_troisieme_position = $em->createQuery(
+														"SELECT COUNT(da.choix3) as nb_choix3
+														FROM VotenmasseVotenmasseBundle:DonnerAvis da
+														WHERE da.vote = ".$vote."
+														AND da.choix3 = :value")
+														->setParameter('value', $value);
+
+													 $count_choix_troisieme_position_result[$cpt] = $count_choix_troisieme_position->getResult();
+													 $cpt++;
+												}
+												else {
+													$count_choix_troisieme_position_result = $count_choix_troisieme_position;
+												}
+											}
+										}
+										
+										if (isset($count_choix_troisieme_position_result)) {
+										
+											if ($count_choix_troisieme_position_result != null) {
+												$troisieme_position = (-1);
+												$count_nb_troisieme_position = 0;
+												
+												foreach ($count_choix_troisieme_position_result as $cle => $valeur) {
+													foreach ($valeur as $key => $value) {
+														if ($value['nb_choix3'] > $count_nb_troisieme_position) {
+															$troisieme_position = $cle;
+															$count_nb_troisieme_position = $value['nb_choix3'];
+														}
+													}
+												}
+												$troisieme = $choix_troisieme_position_result[$troisieme_position]["choix3"];
+											}
+											
+											// Quatrieme position
+											$choix_quatrieme_position = $em->createQuery(
+												"SELECT DISTINCT da.choix4
+												FROM VotenmasseVotenmasseBundle:DonnerAvis da
+												WHERE da.vote = ".$vote."
+												AND da.choix4 NOT IN (:premier, :second, :troisieme)")
+												->setParameter('premier', $premier)
+												->setParameter('second', $second)
+												->setParameter('troisieme', $troisieme);	
+
+											$choix_quatrieme_position_result = $choix_quatrieme_position->getResult();
+											
+											$count_choix_quatrieme_position = array();
+											
+											$cpt = 0;
+
+											foreach ($choix_quatrieme_position_result as $cle => $valeur) {
+												foreach ($valeur as $key => $value) {
+													if ($value != NULL) {
+														 $count_choix_quatrieme_position = $em->createQuery(
+															"SELECT COUNT(da.choix4) as nb_choix4
+															FROM VotenmasseVotenmasseBundle:DonnerAvis da
+															WHERE da.vote = ".$vote."
+															AND da.choix4 = :value")
+															->setParameter('value', $value);
+														 $count_choix_quatrieme_position_result[$cpt] = $count_choix_quatrieme_position->getResult();
+														 $cpt++;
+													}
+													else {
+														$count_choix_quatrieme_position_result = $count_choix_quatrieme_position;
+													}
+												}
+											}
+											
+											if (isset($count_choix_quatrieme_position_result)) {
+											
+												if ($count_choix_quatrieme_position_result != null) {
+													$quatrieme_position = (-1);
+													$count_nb_quatrieme_position = 0;
+													
+													foreach ($count_choix_quatrieme_position_result as $cle => $valeur) {
+														foreach ($valeur as $key => $value) {
+															if ($value['nb_choix4'] > $count_nb_quatrieme_position) {
+																$quatrieme_position = $cle;
+																$count_nb_quatrieme_position = $value['nb_choix4'];
+															}
+														}
+													}
+													$quatrieme = $choix_quatrieme_position_result[$quatrieme_position]["choix4"];
+												}
+												
+												// Cinquieme position
+												$choix_cinquieme_position = $em->createQuery(
+													"SELECT DISTINCT da.choix5
+													FROM VotenmasseVotenmasseBundle:DonnerAvis da
+													WHERE da.vote = ".$vote."
+													AND da.choix5 NOT IN (:premier, :second, :troisieme, :quatrieme)")
+													->setParameter('premier', $premier)
+													->setParameter('second', $second)
+													->setParameter('troisieme', $troisieme)
+													->setParameter('quatrieme', $quatrieme);
+
+												$choix_cinquieme_position_result = $choix_cinquieme_position->getResult();
+												
+												$count_choix_cinquieme_position = array();
+												
+												$cpt = 0;
+
+												foreach ($choix_cinquieme_position_result as $cle => $valeur) {
+													foreach ($valeur as $key => $value) {
+														if ($value != NULL) {
+															 $count_choix_cinquieme_position = $em->createQuery(
+																"SELECT COUNT(da.choix5) as nb_choix5
+																FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																WHERE da.vote = ".$vote."
+																AND da.choix5 = :value")
+																->setParameter('value', $value);
+															 
+															 $count_choix_cinquieme_position_result[$cpt] = $count_choix_cinquieme_position->getResult();
+															 $cpt++;
+														}
+														else {
+															$count_choix_cinquieme_position_result = $count_choix_cinquieme_position;
+														}
+													}
+												}
+												
+												if (isset($count_choix_cinquieme_position_result)) {
+												
+													if ($count_choix_cinquieme_position_result != null) {
+														$cinquieme_position = (-1);
+														$count_nb_cinquieme_position = 0;
+														
+														foreach ($count_choix_cinquieme_position_result as $cle => $valeur) {
+															foreach ($valeur as $key => $value) {
+																if ($value['nb_choix5'] > $count_nb_cinquieme_position) {
+																	$cinquieme_position = $cle;
+																	$count_nb_cinquieme_position = $value['nb_choix5'];
+																}
+															}
+														}
+														$cinquieme = $choix_cinquieme_position_result[$cinquieme_position]["choix5"];
+													}
+													
+													// Sixieme position
+													$choix_sixieme_position = $em->createQuery(
+														"SELECT DISTINCT da.choix6
+														FROM VotenmasseVotenmasseBundle:DonnerAvis da
+														WHERE da.vote = ".$vote."
+														AND da.choix6 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme)")
+														->setParameter('premier', $premier)
+														->setParameter('second', $second)
+														->setParameter('troisieme', $troisieme)
+														->setParameter('quatrieme', $quatrieme)
+														->setParameter('cinquieme', $cinquieme);
+
+													$choix_sixieme_position_result = $choix_sixieme_position->getResult();
+													
+													$count_choix_sixieme_position = array();
+													
+													$cpt = 0;
+
+													foreach ($choix_sixieme_position_result as $cle => $valeur) {
+														foreach ($valeur as $key => $value) {
+															if ($value != NULL) {
+																 $count_choix_sixieme_position = $em->createQuery(
+																	"SELECT COUNT(da.choix6) as nb_choix6
+																	FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																	WHERE da.vote = ".$vote."
+																	AND da.choix6 = :value")
+																	->setParameter('value', $value);
+																 
+																 $count_choix_sixieme_position_result[$cpt] = $count_choix_sixieme_position->getResult();
+																 $cpt++;
+															}
+															else {
+																$count_choix_sixieme_position_result = $count_choix_sixieme_position;
+															}
+														}
+													}
+													
+													if (isset($count_choix_sixieme_position_result)) {
+													
+														if ($count_choix_sixieme_position_result != null) {
+															$sixieme_position = (-1);
+															$count_nb_sixieme_position = 0;
+															
+															foreach ($count_choix_sixieme_position_result as $cle => $valeur) {
+																foreach ($valeur as $key => $value) {
+																	if ($value['nb_choix6'] > $count_nb_sixieme_position) {
+																		$sixieme_position = $cle;
+																		$count_nb_sixieme_position = $value['nb_choix6'];
+																	}
+																}
+															}
+															$sixieme = $choix_sixieme_position_result[$sixieme_position]["choix6"];
+														}
+														
+														// Septieme position
+														$choix_septieme_position = $em->createQuery(
+															"SELECT DISTINCT da.choix7
+															FROM VotenmasseVotenmasseBundle:DonnerAvis da
+															WHERE da.vote = ".$vote."
+															AND da.choix7 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme)")
+															->setParameter('premier', $premier)
+															->setParameter('second', $second)
+															->setParameter('troisieme', $troisieme)
+															->setParameter('quatrieme', $quatrieme)
+															->setParameter('cinquieme', $cinquieme)
+															->setParameter('sixieme', $sixieme);
+
+														$choix_septieme_position_result = $choix_septieme_position->getResult();
+														
+														$count_choix_septieme_position = array();
+														
+														$cpt = 0;
+
+														foreach ($choix_septieme_position_result as $cle => $valeur) {
+															foreach ($valeur as $key => $value) {
+																if ($value != NULL) {
+																	 $count_choix_septieme_position = $em->createQuery(
+																		"SELECT COUNT(da.choix7) as nb_choix7
+																		FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																		WHERE da.vote = ".$vote."
+																		AND da.choix7 = :value")
+																		->setParameter('value', $value);
+																	 
+																	 $count_choix_septieme_position_result[$cpt] = $count_choix_septieme_position->getResult();
+																	 $cpt++;
+																}
+																else {
+																	$count_choix_septieme_position_result = $count_choix_septieme_position;
+																}
+															}
+														}
+														
+														if (isset($count_choix_septieme_position_result)) {
+														
+															if ($count_choix_septieme_position_result != null) {
+																$septieme_position = (-1);
+																$count_nb_septieme_position = 0;
+																
+																foreach ($count_choix_septieme_position_result as $cle => $valeur) {
+																	foreach ($valeur as $key => $value) {
+																		if ($value['nb_choix7'] > $count_nb_septieme_position) {
+																			$septieme_position = $cle;
+																			$count_nb_septieme_position = $value['nb_choix7'];
+																		}
+																	}
+																}
+																$septieme = $choix_septieme_position_result[$septieme_position]["choix7"];
+															}
+															
+															// Huitieme position
+															$choix_huitieme_position = $em->createQuery(
+																"SELECT DISTINCT da.choix8
+																FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																WHERE da.vote = ".$vote."
+																AND da.choix8 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme)")
+																->setParameter('premier', $premier)
+																->setParameter('second', $second)
+																->setParameter('troisieme', $troisieme)
+																->setParameter('quatrieme', $quatrieme)
+																->setParameter('cinquieme', $cinquieme)
+																->setParameter('sixieme', $sixieme)
+																->setParameter('septieme', $septieme);
+
+															$choix_huitieme_position_result = $choix_huitieme_position->getResult();
+															
+															$count_choix_huitieme_position = array();
+															
+															$cpt = 0;
+
+															foreach ($choix_huitieme_position_result as $cle => $valeur) {
+																foreach ($valeur as $key => $value) {
+																	if ($value != NULL) {
+																		 $count_choix_huitieme_position = $em->createQuery(
+																			"SELECT COUNT(da.choix8) as nb_choix8
+																			FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																			WHERE da.vote = ".$vote."
+																			AND da.choix8 = :value")
+																			->setParameter('value', $value);
+																		 
+																		 $count_choix_huitieme_position_result[$cpt] = $count_choix_huitieme_position->getResult();
+																		 $cpt++;
+																	}
+																	else {
+																		$count_choix_huitieme_position_result = $count_choix_huitieme_position;
+																	}
+																}
+															}
+															
+															if (isset($count_choix_huitieme_position_result)) {
+															
+																if ($count_choix_huitieme_position_result != null) {
+																	$huitieme_position = (-1);
+																	$count_nb_huitieme_position = 0;
+																	
+																	foreach ($count_choix_huitieme_position_result as $cle => $valeur) {
+																		foreach ($valeur as $key => $value) {
+																			if ($value['nb_choix8'] > $count_nb_huitieme_position) {
+																				$huitieme_position = $cle;
+																				$count_nb_huitieme_position = $value['nb_choix8'];
+																			}
+																		}
+																	}
+																	$huitieme = $choix_huitieme_position_result[$huitieme_position]["choix8"];
+																}
+																
+																// Neuvieme position
+																$choix_neuvieme_position = $em->createQuery(
+																	"SELECT DISTINCT da.choix9
+																	FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																	WHERE da.vote = ".$vote."
+																	AND da.choix9 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme, :huitieme)")
+																	->setParameter('premier', $premier)
+																	->setParameter('second', $second)
+																	->setParameter('troisieme', $troisieme)
+																	->setParameter('quatrieme', $quatrieme)
+																	->setParameter('cinquieme', $cinquieme)
+																	->setParameter('sixieme', $sixieme)
+																	->setParameter('septieme', $septieme)
+																	->setParameter('huitieme', $huitieme);
+
+																$choix_neuvieme_position_result = $choix_neuvieme_position->getResult();
+																
+																$count_choix_neuvieme_position = array();
+																
+																$cpt = 0;
+
+																foreach ($choix_neuvieme_position_result as $cle => $valeur) {
+																	foreach ($valeur as $key => $value) {
+																		if ($value != NULL) {
+																			 $count_choix_neuvieme_position = $em->createQuery(
+																				"SELECT COUNT(da.choix9) as nb_choix9
+																				FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																				WHERE da.vote = ".$vote."
+																				AND da.choix9 = :value")
+																				->setParameter('value', $value);
+																			 
+																			 $count_choix_neuvieme_position_result[$cpt] = $count_choix_neuvieme_position->getResult();
+																			 $cpt++;
+																		}
+																		else {
+																			$count_choix_neuvieme_position_result = $count_choix_neuvieme_position;
+																		}
+																	}
+																}
+																
+																if (isset($count_choix_neuvieme_position_result)) {
+																
+																	if ($count_choix_neuvieme_position_result != null) {
+																		$neuvieme_position = (-1);
+																		$count_nb_neuvieme_position = 0;
+																		
+																		foreach ($count_choix_neuvieme_position_result as $cle => $valeur) {
+																			foreach ($valeur as $key => $value) {
+																				if ($value['nb_choix9'] > $count_nb_neuvieme_position) {
+																					$neuvieme_position = $cle;
+																					$count_nb_neuvieme_position = $value['nb_choix9'];
+																				}
+																			}
+																		}
+																		$neuvieme = $choix_neuvieme_position_result[$neuvieme_position]["choix9"];
+																	}
+																	
+																	// Dixieme position
+																	$choix_dixieme_position = $em->createQuery(
+																		"SELECT DISTINCT da.choix10
+																		FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																		WHERE da.vote = ".$vote."
+																		AND da.choix10 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme, :huitieme, :neuvieme)")
+																		->setParameter('premier', $premier)
+																		->setParameter('second', $second)
+																		->setParameter('troisieme', $troisieme)
+																		->setParameter('quatrieme', $quatrieme)
+																		->setParameter('cinquieme', $cinquieme)
+																		->setParameter('sixieme', $sixieme)
+																		->setParameter('septieme', $septieme)
+																		->setParameter('huitieme', $huitieme)
+																		->setParameter('neuvieme', $neuvieme);
+
+																	$choix_dixieme_position_result = $choix_dixieme_position->getResult();
+																	
+																	$count_choix_dixieme_position = array();
+																	
+																	$cpt = 0;
+
+																	foreach ($choix_dixieme_position_result as $cle => $valeur) {
+																		foreach ($valeur as $key => $value) {
+																			if ($value != NULL) {
+																				 $count_choix_dixieme_position = $em->createQuery(
+																					"SELECT COUNT(da.choix10) as nb_choix10
+																					FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																					WHERE da.vote = ".$vote."
+																					AND da.choix10 = :value")
+																					->setParameter('value', $value);
+																				 
+																				 $count_choix_dixieme_position_result[$cpt] = $count_choix_dixieme_position->getResult();
+																				 $cpt++;
+																			}
+																			else {
+																				$count_choix_dixieme_position_result = $count_choix_dixieme_position;
+																			}
+																		}
+																	}
+																	
+																	if (isset($count_choix_dixieme_position_result)) {
+																	
+																		if ($count_choix_dixieme_position_result != null) {
+																			$dixieme_position = (-1);
+																			$count_nb_dixieme_position = 0;
+																			
+																			foreach ($count_choix_dixieme_position_result as $cle => $valeur) {
+																				foreach ($valeur as $key => $value) {
+																					if ($value['nb_choix10'] > $count_nb_dixieme_position) {
+																						$dixieme_position = $cle;
+																						$count_nb_dixieme_position = $value['nb_choix10'];
+																					}
+																				}
+																			}
+																			$dixieme = $choix_dixieme_position_result[$dixieme_position]["choix10"];
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
 										}
 									}
 								}
 								
-								if (isset($count_choix_troisieme_position_result)) {
+								if (isset($dixieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme,
+										  'cinquieme' => $cinquieme,
+										  'sixieme' => $sixieme,
+										  'septieme' => $septieme,
+										  'huitieme' => $huitieme,
+										  'neuvieme' => $neuvieme,
+										  'dixieme' => $dixieme));
+								}
+								if (isset($neuvieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme,
+										  'cinquieme' => $cinquieme,
+										  'sixieme' => $sixieme,
+										  'septieme' => $septieme,
+										  'huitieme' => $huitieme,
+										  'neuvieme' => $neuvieme));
+								}
+								if (isset($huitieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme,
+										  'cinquieme' => $cinquieme,
+										  'sixieme' => $sixieme,
+										  'septieme' => $septieme,
+										  'huitieme' => $huitieme));
+								}
+								if (isset($septieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme,
+										  'cinquieme' => $cinquieme,
+										  'sixieme' => $sixieme,
+										  'septieme' => $septieme));
+								}
+								if (isset($sixieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+											  'vote_id' => $vote,
+											  'vote_nom' => $infos_vote->getNom(),
+											  'vote_texte' => $infos_vote->getTexte(),
+											  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+											  'premier' => $premier,
+											  'second' => $second,
+											  'troisieme' => $troisieme,
+											  'quatrieme' => $quatrieme,
+											  'cinquieme' => $cinquieme,
+											  'sixieme' => $sixieme));
+								}
+								if (isset($cinquieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme,
+										  'cinquieme' => $cinquieme));
+								}
+								if (isset($quatrieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme));
+								}
+								if (isset($troisieme)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme));
+								}
+								if (isset($second)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second));
+								}
+								if (isset($premier)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier));
+								}
+								if (!isset($premier)) {
+									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie()));
+								}
+							}
+						}
+						else {
+							return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+						}
+					}
+					else {
+						return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $infos_vote->getId())));
+					}
+				}
+				else {
+					if ($infos_vote->getType() == "Vote public") {
+						if ($infos_vote->getEtat() == true) {					
+							if ($invite != NULL) {
+								// S'il a déjà voté alors on le redirige vers les commentaires du vote
+								$avis_existe_deja = $this->getDoctrine()
+									->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+									->findOneBy(array('utilisateur' => $infos_invite, 'vote' => $infos_vote));
+												
+								if ($avis_existe_deja) {
+									return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $vote)));
+								}
+							}
+							
+							if ($request->getMethod() != 'POST') {
+								$donner_avis = new DonnerAvis;
+						
+								// S'il n'y a que 2 propositions
+								if ($infos_vote->getChoix3() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 3 propositions
+								else if ($infos_vote->getChoix4() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 4 propositions
+								else if ($infos_vote->getChoix5() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 5 propositions
+								else if ($infos_vote->getChoix6() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->add('choix5', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 6 propositions
+								else if ($infos_vote->getChoix7() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->add('choix5', 'text', array(
+																	'mapped' => false))
+											 ->add('choix6', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 7 propositions
+								else if ($infos_vote->getChoix8() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->add('choix5', 'text', array(
+																	'mapped' => false))
+											 ->add('choix6', 'text', array(
+																	'mapped' => false))
+											 ->add('choix7', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 8 propositions
+								else if ($infos_vote->getChoix9() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->add('choix5', 'text', array(
+																	'mapped' => false))
+											 ->add('choix6', 'text', array(
+																	'mapped' => false))
+											 ->add('choix7', 'text', array(
+																	'mapped' => false))
+											 ->add('choix8', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 9 propositions
+								else if ($infos_vote->getChoix10() == NULL) {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->add('choix5', 'text', array(
+																	'mapped' => false))
+											 ->add('choix6', 'text', array(
+																	'mapped' => false))
+											 ->add('choix7', 'text', array(
+																	'mapped' => false))
+											 ->add('choix8', 'text', array(
+																	'mapped' => false))
+											 ->add('choix9', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
+								// S'il y a 10 propositions
+								else {
+									$form = $this->createFormBuilder($donner_avis)
+											 ->add('choix1', 'text', array(
+																	'mapped' => false))
+											 ->add('choix2', 'text', array(
+																	'mapped' => false))
+											 ->add('choix3', 'text', array(
+																	'mapped' => false))
+											 ->add('choix4', 'text', array(
+																	'mapped' => false))
+											 ->add('choix5', 'text', array(
+																	'mapped' => false))
+											 ->add('choix6', 'text', array(
+																	'mapped' => false))
+											 ->add('choix7', 'text', array(
+																	'mapped' => false))
+											 ->add('choix8', 'text', array(
+																	'mapped' => false))
+											 ->add('choix9', 'text', array(
+																	'mapped' => false))
+											 ->add('choix10', 'text', array(
+																	'mapped' => false))
+											 ->getForm();
+								}
 								
-									if ($count_choix_troisieme_position_result != null) {
-										$troisieme_position = (-1);
-										$count_nb_troisieme_position = 0;
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'form' => $form->createView(),
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'choix1' => $infos_vote->getChoix1(),
+									  'choix2' => $infos_vote->getChoix2(),
+									  'choix3' => $infos_vote->getChoix3(),
+									  'choix4' => $infos_vote->getChoix4(),
+									  'choix5' => $infos_vote->getChoix5(),
+									  'choix6' => $infos_vote->getChoix6(),
+									  'choix7' => $infos_vote->getChoix7(),
+									  'choix8' => $infos_vote->getChoix8(),
+									  'choix9' => $infos_vote->getChoix9(),
+									  'choix10' => $infos_vote->getChoix10()
+									));
+							}
+							else {
+								// On met la valeur de la variable de session vote dans fin et vote à null
+								  $session->set('fin', $session->get('vote'));
+								  $session->set('vote', null);
+								
+								  $avis = new DonnerAvis;
+								  
+								  // S'il y avait 10 choix et que tous les choix ne sont pas entre 1 et 10
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix1'] > 10 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 10 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 10 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 10 || $request->request->get("form")['choix4'] < 1 ||
+									$request->request->get("form")['choix5'] > 10 || $request->request->get("form")['choix5'] < 1 ||
+									$request->request->get("form")['choix6'] > 10 || $request->request->get("form")['choix6'] < 1 ||
+									$request->request->get("form")['choix7'] > 10 || $request->request->get("form")['choix7'] < 1 ||
+									$request->request->get("form")['choix8'] > 10 || $request->request->get("form")['choix8'] < 1 ||
+									$request->request->get("form")['choix9'] > 10 || $request->request->get("form")['choix9'] < 1 ||
+									$request->request->get("form")['choix10'] > 10 || $request->request->get("form")['choix10'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								 // S'il y avait 9 choix et que tous les choix ne sont pas entre 1 et 9
+								  else if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix1'] > 9 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 9 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 9 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 9 || $request->request->get("form")['choix4'] < 1 ||
+									$request->request->get("form")['choix5'] > 9 || $request->request->get("form")['choix5'] < 1 ||
+									$request->request->get("form")['choix6'] > 9 || $request->request->get("form")['choix6'] < 1 ||
+									$request->request->get("form")['choix7'] > 9 || $request->request->get("form")['choix7'] < 1 ||
+									$request->request->get("form")['choix8'] > 9 || $request->request->get("form")['choix8'] < 1 ||
+									$request->request->get("form")['choix9'] > 9 || $request->request->get("form")['choix9'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il y avait 8 choix et que tous les choix ne sont pas entre 1 et 8
+								  else if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix1'] > 8 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 8 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 8 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 8 || $request->request->get("form")['choix4'] < 1 ||
+									$request->request->get("form")['choix5'] > 8 || $request->request->get("form")['choix5'] < 1 ||
+									$request->request->get("form")['choix6'] > 8 || $request->request->get("form")['choix6'] < 1 ||
+									$request->request->get("form")['choix7'] > 8 || $request->request->get("form")['choix7'] < 1 ||
+									$request->request->get("form")['choix8'] > 8 || $request->request->get("form")['choix8'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il y avait 7 choix et que tous les choix ne sont pas entre 1 et 7
+								  else if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix1'] > 7 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 7 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 7 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 7 || $request->request->get("form")['choix4'] < 1 ||
+									$request->request->get("form")['choix5'] > 7 || $request->request->get("form")['choix5'] < 1 ||
+									$request->request->get("form")['choix6'] > 7 || $request->request->get("form")['choix6'] < 1 ||
+									$request->request->get("form")['choix7'] > 7 || $request->request->get("form")['choix7'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il y avait 6 choix et que tous les choix ne sont pas entre 1 et 6
+								  else if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix1'] > 6 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 6 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 6 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 6 || $request->request->get("form")['choix4'] < 1 ||
+									$request->request->get("form")['choix5'] > 6 || $request->request->get("form")['choix5'] < 1 ||
+									$request->request->get("form")['choix6'] > 6 || $request->request->get("form")['choix6'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il y avait 5 choix et que tous les choix ne sont pas entre 1 et 5
+								  else if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix1'] > 5 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 5 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 5 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 5 || $request->request->get("form")['choix4'] < 1 ||
+									$request->request->get("form")['choix5'] > 5 || $request->request->get("form")['choix5'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il y avait 4 choix et que tous les choix ne sont pas entre 1 et 4
+								  else if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix1'] > 4 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 4 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 4 || $request->request->get("form")['choix3'] < 1 ||
+									$request->request->get("form")['choix4'] > 4 || $request->request->get("form")['choix4'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il y avait 3 choix et que tous les choix ne sont pas entre 1 et 3
+								  else if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix1'] > 3 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 3 || $request->request->get("form")['choix2'] < 1 ||
+									$request->request->get("form")['choix3'] > 3 || $request->request->get("form")['choix3'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  // S'il n'y avait que 2 choix et que tous les choix ne sont pas entre 1 et 2
+								  else {
+									if ($request->request->get("form")['choix1'] > 2 || $request->request->get("form")['choix1'] < 1 ||
+									$request->request->get("form")['choix2'] > 2 || $request->request->get("form")['choix2'] < 1) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+								  }
+								  
+								  // A partir d'ici on a tester tous les choix pour voir lequel est classé en numéro 1, 2, ... et on les stocke
+								  if ($request->request->get("form")['choix1'] == '1') {
+									$choix1 = 1;
+									$avis->setChoix1($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '1') {
+									// On vérifie que deux choix ne soient pas identiques
+									if (isset($choix1)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix1 = 2;
+										$avis->setChoix1($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 3;
+											$avis->setChoix1($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 4;
+											$avis->setChoix1($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 5;
+											$avis->setChoix1($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 6;
+											$avis->setChoix1($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 7;
+											$avis->setChoix1($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 8;
+											$avis->setChoix1($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 9;
+											$avis->setChoix1($infos_vote->getChoix9());
+										}
+									}
+								  }
+								 if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '1') {
+										if (isset($choix1)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix1 = 10;
+											$avis->setChoix1($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '2') {
+									$choix2 = 1;
+									$avis->setChoix2($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '2') {
+									if (isset($choix2)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix2 = 2;
+										$avis->setChoix2($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 3;
+											$avis->setChoix2($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 4;
+											$avis->setChoix2($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 5;
+											$avis->setChoix2($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 6;
+											$avis->setChoix2($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 7;
+											$avis->setChoix2($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 8;
+											$avis->setChoix2($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 9;
+											$avis->setChoix2($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '2') {
+										if (isset($choix2)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix2 = 10;
+											$avis->setChoix2($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '3') {
+									$choix3 = 1;
+									$avis->setChoix3($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '3') {
+									if (isset($choix3)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix3 = 2;
+										$avis->setChoix3($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 3;
+											$avis->setChoix3($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 4;
+											$avis->setChoix3($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 5;
+											$avis->setChoix3($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 6;
+											$avis->setChoix3($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 7;
+											$avis->setChoix3($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 8;
+											$avis->setChoix3($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 9;
+											$avis->setChoix3($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '3') {
+										if (isset($choix3)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix3 = 10;
+											$avis->setChoix3($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '4') {
+									$choix4 = 1;
+									$avis->setChoix4($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '4') {
+									if (isset($choix4)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix4 = 2;
+										$avis->setChoix4($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 3;
+											$avis->setChoix4($infos_vote->getChoix3());
+										}
+									}
+								  }
+								 if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 4;
+											$avis->setChoix4($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 5;
+											$avis->setChoix4($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 6;
+											$avis->setChoix4($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 7;
+											$avis->setChoix4($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 8;
+											$avis->setChoix4($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 9;
+											$avis->setChoix4($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '4') {
+										if (isset($choix4)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix4 = 10;
+											$avis->setChoix4($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '5') {
+									$choix5 = 1;
+									$avis->setChoix5($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '5') {
+									if (isset($choix5)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix5 = 2;
+										$avis->setChoix5($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 3;
+											$avis->setChoix5($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 4;
+											$avis->setChoix5($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 5;
+											$avis->setChoix5($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 6;
+											$avis->setChoix5($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 7;
+											$avis->setChoix5($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 8;
+											$avis->setChoix5($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 9;
+											$avis->setChoix5($infos_vote->getChoix9());
+										}
+									  }
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '5') {
+										if (isset($choix5)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix5 = 10;
+											$avis->setChoix5($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '6') {
+									$choix6 = 1;
+									$avis->setChoix6($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '6') {
+									if (isset($choix6)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix6 = 2;
+										$avis->setChoix6($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 3;
+											$avis->setChoix6($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 4;
+											$avis->setChoix6($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 5;
+											$avis->setChoix6($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 6;
+											$avis->setChoix6($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 7;
+											$avis->setChoix6($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 8;
+											$avis->setChoix6($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 9;
+											$avis->setChoix6($infos_vote->getChoix9());
+										}
+									}
+								  }
+								   if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '6') {
+										if (isset($choix6)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix6 = 10;
+											$avis->setChoix6($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '7') {
+									$choix7 = 1;
+									$avis->setChoix7($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '7') {
+									if (isset($choix7)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix7 = 2;
+										$avis->setChoix7($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 3;
+											$avis->setChoix7($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 4;
+											$avis->setChoix7($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 5;
+											$avis->setChoix7($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 6;
+											$avis->setChoix7($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 7;
+											$avis->setChoix7($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 8;
+											$avis->setChoix7($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 9;
+											$avis->setChoix7($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '7') {
+										if (isset($choix7)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix7 = 10;
+											$avis->setChoix7($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '8') {
+									$choix8 = 1;
+									$avis->setChoix8($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '8') {
+									if (isset($choix8)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix8 = 2;
+										$avis->setChoix8($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 3;
+											$avis->setChoix8($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 4;
+											$avis->setChoix8($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '8') {	
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 5;
+											$avis->setChoix8($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 6;
+											$avis->setChoix8($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 7;
+											$avis->setChoix8($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 8;
+											$avis->setChoix8($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 9;
+											$avis->setChoix8($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix9'] == '8') {
+										if (isset($choix8)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix8 = 10;
+											$avis->setChoix8($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '9') {
+									$choix9 = 1;
+									$avis->setChoix9($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '9') {
+									if (isset($choix9)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix9 = 2;
+										$avis->setChoix9($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 3;
+											$avis->setChoix9($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 4;
+											$avis->setChoix9($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 5;
+											$avis->setChoix9($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 6;
+											$avis->setChoix9($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 7;
+											$avis->setChoix9($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 8;
+											$avis->setChoix9($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 9;
+											$avis->setChoix9($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '9') {
+										if (isset($choix9)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix9 = 10;
+											$avis->setChoix2($infos_vote->getChoix10());
+										}
+									}
+								  }
+								  
+								  if ($request->request->get("form")['choix1'] == '10') {
+									$choix10 = 1;
+									$avis->setChoix10($infos_vote->getChoix1());
+								  }
+								  if ($request->request->get("form")['choix2'] == '10') {
+									if (isset($choix10)) {
+										return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+									}
+									else {
+										$choix10 = 2;
+										$avis->setChoix10($infos_vote->getChoix2());
+									}
+								  }
+								  if (isset($request->request->get("form")['choix3'])) {
+									if ($request->request->get("form")['choix3'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 3;
+											$avis->setChoix10($infos_vote->getChoix3());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix4'])) {
+									if ($request->request->get("form")['choix4'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 4;
+											$avis->setChoix10($infos_vote->getChoix4());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix5'])) {
+									if ($request->request->get("form")['choix5'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 5;
+											$avis->setChoix10($infos_vote->getChoix5());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix6'])) {
+									if ($request->request->get("form")['choix6'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 6;
+											$avis->setChoix10($infos_vote->getChoix6());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix7'])) {
+									if ($request->request->get("form")['choix7'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 7;
+											$avis->setChoix10($infos_vote->getChoix7());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix8'])) {
+									if ($request->request->get("form")['choix8'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 8;
+											$avis->setChoix10($infos_vote->getChoix8());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix9'])) {
+									if ($request->request->get("form")['choix9'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 9;
+											$avis->setChoix10($infos_vote->getChoix9());
+										}
+									}
+								  }
+								  if (isset($request->request->get("form")['choix10'])) {
+									if ($request->request->get("form")['choix10'] == '10') {
+										if (isset($choix10)) {
+											return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote', array('vote' => $session->get('fin'))));
+										}
+										else {
+											$choix10 = 10;
+											$avis->setChoix10($infos_vote->getChoix10());
+										}
+									}
+								  }
+									
+								  // On enregistre le donnerAvis
+								  $avis->setVote($infos_vote);	
+								  
+								  $utilisateur = new Utilisateur;
+								  
+								  $pass = "abcdefghijklmnopqrstuvwxyz987654321012345643198536985prokfjaidinend";
+								  $pass_md5 = md5($pass);
+									
+								  $utilisateur->setMotDePasse($pass_md5);
+								  $date = date_create(date('Y-m-d'));
+								  
+								  $utilisateur->setDateDeNaissance($date);
+								  $utilisateur->setSexe('H');
+								  
+								  $em = $this->getDoctrine()->getManager();
+								  $req_max_id = $em->createQuery(
+									'SELECT MAX(u.id) AS max_id
+									FROM VotenmasseVotenmasseBundle:Utilisateur u');
+
+								  $max_id = $req_max_id->getResult();
+
+								  $base = "Invité_";
+								  $num = $max_id[0]["max_id"] + 1;
+								  $invite = $base.$num;
+								  
+								  $utilisateur->setMail($invite."@fake.com");
+								  $utilisateur->setPrenom($invite);
+								  $utilisateur->setNom($invite);
+								  $utilisateur->setLogin($invite);
+								  
+								  $session->set('invite', $invite);
 										
-										foreach ($count_choix_troisieme_position_result as $cle => $valeur) {
+								  // On enregistre notre objet $utilisateur dans la base de données
+								  $em->persist($utilisateur);
+								  $em->flush();
+								  
+								  $avis->setUtilisateur($utilisateur);
+									
+								  $em = $this->getDoctrine()->getManager();
+								  $em->persist($avis);
+								  $em->flush();
+								  
+								  // On redirige vers la page de commentaires du vote en question
+								  return $this->redirect($this->generateUrl('votenmasse_votenmasse_commentaire', array('vote' => $session->get('fin'), 'supp' => true)));
+							}
+						}
+						else {
+							// Afficher le résultat
+							
+							// Première position
+							$em = $this->getDoctrine()->getManager();
+							$choix_premiere_position = $em->createQuery(
+								"SELECT DISTINCT da.choix1
+								FROM VotenmasseVotenmasseBundle:DonnerAvis da
+								WHERE da.vote = ".$vote);
+
+							$choix_premiere_position_result = $choix_premiere_position->getResult();
+							
+							$count_choix_premiere_position = array();
+							
+							$cpt = 0;
+
+							foreach ($choix_premiere_position_result as $cle => $valeur) {
+								foreach ($valeur as $key => $value) {
+									if ($value != NULL) {
+										 $data = addslashes($value);
+										 $count_choix_premiere_position[$cpt] = $em->createQuery(
+											"SELECT COUNT(da.choix1) as nb_choix1
+											FROM VotenmasseVotenmasseBundle:DonnerAvis da
+											WHERE da.vote = ".$vote."
+											AND da.choix1 = :value")
+											->setParameter('value', $value);;
+											
+										 $count_choix_premiere_position_result[$cpt] = $count_choix_premiere_position[$cpt]->getResult();
+										 $cpt++;
+									}
+									else {
+										$count_choix_premiere_position_result = $count_choix_premiere_position;
+									}
+								}
+							}	
+							
+							if (isset($count_choix_premiere_position_result)) {
+							
+								if ($count_choix_premiere_position_result != null) {
+									$premiere_position = (-1);
+									$count_nb_premiere_position = 0;
+									
+									foreach ($count_choix_premiere_position_result as $cle => $valeur) {
+										foreach ($valeur as $key => $value) {
+											if ($value['nb_choix1'] > $count_nb_premiere_position) {
+												$premiere_position = $cle;
+												$count_nb_premiere_position = $value['nb_choix1'];
+											}
+										}
+									}
+									$premier = $choix_premiere_position_result[$premiere_position]["choix1"];
+								}
+								
+								// Seconde position
+								$choix_seconde_position = $em->createQuery(
+									"SELECT DISTINCT da.choix2
+									FROM VotenmasseVotenmasseBundle:DonnerAvis da
+									WHERE da.vote = ".$vote."
+									AND da.choix2 != :premier")
+									->setParameter('premier', $premier);				
+
+								$choix_seconde_position_result = $choix_seconde_position->getResult();
+								
+								$count_choix_seconde_position = array();
+								
+								$cpt = 0;
+
+								foreach ($choix_seconde_position_result as $cle => $valeur) {
+									foreach ($valeur as $key => $value) {
+										if ($value != NULL) {
+											 $count_choix_seconde_position = $em->createQuery(
+												"SELECT COUNT(da.choix2) as nb_choix2
+												FROM VotenmasseVotenmasseBundle:DonnerAvis da
+												WHERE da.vote = ".$vote."
+												AND da.choix2 = :value")
+												->setParameter('value', $value);
+											 
+											 $count_choix_seconde_position_result[$cpt] = $count_choix_seconde_position->getResult();
+											 $cpt++;
+										}
+										else {
+											$count_choix_seconde_position_result = $count_choix_seconde_position;
+										}
+									}
+								}
+								
+								if (isset($count_choix_seconde_position_result)) {
+									if ($count_choix_seconde_position_result != null) {
+										$seconde_position = (-1);
+										$count_nb_seconde_position = 0;
+										
+										foreach ($count_choix_seconde_position_result as $cle => $valeur) {
 											foreach ($valeur as $key => $value) {
-												if ($value['nb_choix3'] > $count_nb_troisieme_position) {
-													$troisieme_position = $cle;
-													$count_nb_troisieme_position = $value['nb_choix3'];
+												if ($value['nb_choix2'] > $count_nb_seconde_position) {
+													$seconde_position = $cle;
+													$count_nb_seconde_position = $value['nb_choix2'];
 												}
 											}
 										}
-										$troisieme = $choix_troisieme_position_result[$troisieme_position]["choix3"];
+										$second = $choix_seconde_position_result[$seconde_position]["choix2"];
 									}
 									
-									// Quatrieme position
-									$choix_quatrieme_position = $em->createQuery(
-										"SELECT DISTINCT da.choix4
+									// Troisieme position
+									$choix_troisieme_position = $em->createQuery(
+										"SELECT DISTINCT da.choix3
 										FROM VotenmasseVotenmasseBundle:DonnerAvis da
 										WHERE da.vote = ".$vote."
-										AND da.choix4 NOT IN (:premier, :second, :troisieme)")
+										AND da.choix3 NOT IN (:premier, :second)")
 										->setParameter('premier', $premier)
-										->setParameter('second', $second)
-										->setParameter('troisieme', $troisieme);	
+										->setParameter('second', $second);	
 
-									$choix_quatrieme_position_result = $choix_quatrieme_position->getResult();
+									$choix_troisieme_position_result = $choix_troisieme_position->getResult();
 									
-									$count_choix_quatrieme_position = array();
+									$count_choix_troisieme_position = array();
 									
 									$cpt = 0;
 
-									foreach ($choix_quatrieme_position_result as $cle => $valeur) {
+									foreach ($choix_troisieme_position_result as $cle => $valeur) {
 										foreach ($valeur as $key => $value) {
 											if ($value != NULL) {
-												 $count_choix_quatrieme_position = $em->createQuery(
-													"SELECT COUNT(da.choix4) as nb_choix4
+												 $count_choix_troisieme_position = $em->createQuery(
+													"SELECT COUNT(da.choix3) as nb_choix3
 													FROM VotenmasseVotenmasseBundle:DonnerAvis da
 													WHERE da.vote = ".$vote."
-													AND da.choix4 = :value")
+													AND da.choix3 = :value")
 													->setParameter('value', $value);
-												 $count_choix_quatrieme_position_result[$cpt] = $count_choix_quatrieme_position->getResult();
+
+												 $count_choix_troisieme_position_result[$cpt] = $count_choix_troisieme_position->getResult();
 												 $cpt++;
 											}
 											else {
-												$count_choix_quatrieme_position_result = $count_choix_quatrieme_position;
+												$count_choix_troisieme_position_result = $count_choix_troisieme_position;
 											}
 										}
 									}
 									
-									if (isset($count_choix_quatrieme_position_result)) {
+									if (isset($count_choix_troisieme_position_result)) {
 									
-										if ($count_choix_quatrieme_position_result != null) {
-											$quatrieme_position = (-1);
-											$count_nb_quatrieme_position = 0;
+										if ($count_choix_troisieme_position_result != null) {
+											$troisieme_position = (-1);
+											$count_nb_troisieme_position = 0;
 											
-											foreach ($count_choix_quatrieme_position_result as $cle => $valeur) {
+											foreach ($count_choix_troisieme_position_result as $cle => $valeur) {
 												foreach ($valeur as $key => $value) {
-													if ($value['nb_choix4'] > $count_nb_quatrieme_position) {
-														$quatrieme_position = $cle;
-														$count_nb_quatrieme_position = $value['nb_choix4'];
+													if ($value['nb_choix3'] > $count_nb_troisieme_position) {
+														$troisieme_position = $cle;
+														$count_nb_troisieme_position = $value['nb_choix3'];
 													}
 												}
 											}
-											$quatrieme = $choix_quatrieme_position_result[$quatrieme_position]["choix4"];
+											$troisieme = $choix_troisieme_position_result[$troisieme_position]["choix3"];
 										}
 										
-										// Cinquieme position
-										$choix_cinquieme_position = $em->createQuery(
-											"SELECT DISTINCT da.choix5
+										// Quatrieme position
+										$choix_quatrieme_position = $em->createQuery(
+											"SELECT DISTINCT da.choix4
 											FROM VotenmasseVotenmasseBundle:DonnerAvis da
 											WHERE da.vote = ".$vote."
-											AND da.choix5 NOT IN (:premier, :second, :troisieme, :quatrieme)")
+											AND da.choix4 NOT IN (:premier, :second, :troisieme)")
 											->setParameter('premier', $premier)
 											->setParameter('second', $second)
-											->setParameter('troisieme', $troisieme)
-											->setParameter('quatrieme', $quatrieme);
+											->setParameter('troisieme', $troisieme);	
 
-										$choix_cinquieme_position_result = $choix_cinquieme_position->getResult();
+										$choix_quatrieme_position_result = $choix_quatrieme_position->getResult();
 										
-										$count_choix_cinquieme_position = array();
+										$count_choix_quatrieme_position = array();
 										
 										$cpt = 0;
 
-										foreach ($choix_cinquieme_position_result as $cle => $valeur) {
+										foreach ($choix_quatrieme_position_result as $cle => $valeur) {
 											foreach ($valeur as $key => $value) {
 												if ($value != NULL) {
-													 $count_choix_cinquieme_position = $em->createQuery(
-														"SELECT COUNT(da.choix5) as nb_choix5
+													 $count_choix_quatrieme_position = $em->createQuery(
+														"SELECT COUNT(da.choix4) as nb_choix4
 														FROM VotenmasseVotenmasseBundle:DonnerAvis da
 														WHERE da.vote = ".$vote."
-														AND da.choix5 = :value")
+														AND da.choix4 = :value")
 														->setParameter('value', $value);
-													 
-													 $count_choix_cinquieme_position_result[$cpt] = $count_choix_cinquieme_position->getResult();
+													 $count_choix_quatrieme_position_result[$cpt] = $count_choix_quatrieme_position->getResult();
 													 $cpt++;
 												}
 												else {
-													$count_choix_cinquieme_position_result = $count_choix_cinquieme_position;
+													$count_choix_quatrieme_position_result = $count_choix_quatrieme_position;
 												}
 											}
 										}
 										
-										if (isset($count_choix_cinquieme_position_result)) {
+										if (isset($count_choix_quatrieme_position_result)) {
 										
-											if ($count_choix_cinquieme_position_result != null) {
-												$cinquieme_position = (-1);
-												$count_nb_cinquieme_position = 0;
+											if ($count_choix_quatrieme_position_result != null) {
+												$quatrieme_position = (-1);
+												$count_nb_quatrieme_position = 0;
 												
-												foreach ($count_choix_cinquieme_position_result as $cle => $valeur) {
+												foreach ($count_choix_quatrieme_position_result as $cle => $valeur) {
 													foreach ($valeur as $key => $value) {
-														if ($value['nb_choix5'] > $count_nb_cinquieme_position) {
-															$cinquieme_position = $cle;
-															$count_nb_cinquieme_position = $value['nb_choix5'];
+														if ($value['nb_choix4'] > $count_nb_quatrieme_position) {
+															$quatrieme_position = $cle;
+															$count_nb_quatrieme_position = $value['nb_choix4'];
 														}
 													}
 												}
-												$cinquieme = $choix_cinquieme_position_result[$cinquieme_position]["choix5"];
+												$quatrieme = $choix_quatrieme_position_result[$quatrieme_position]["choix4"];
 											}
 											
-											// Sixieme position
-											$choix_sixieme_position = $em->createQuery(
-												"SELECT DISTINCT da.choix6
+											// Cinquieme position
+											$choix_cinquieme_position = $em->createQuery(
+												"SELECT DISTINCT da.choix5
 												FROM VotenmasseVotenmasseBundle:DonnerAvis da
 												WHERE da.vote = ".$vote."
-												AND da.choix6 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme)")
+												AND da.choix5 NOT IN (:premier, :second, :troisieme, :quatrieme)")
 												->setParameter('premier', $premier)
 												->setParameter('second', $second)
 												->setParameter('troisieme', $troisieme)
-												->setParameter('quatrieme', $quatrieme)
-												->setParameter('cinquieme', $cinquieme);
+												->setParameter('quatrieme', $quatrieme);
 
-											$choix_sixieme_position_result = $choix_sixieme_position->getResult();
+											$choix_cinquieme_position_result = $choix_cinquieme_position->getResult();
 											
-											$count_choix_sixieme_position = array();
+											$count_choix_cinquieme_position = array();
 											
 											$cpt = 0;
 
-											foreach ($choix_sixieme_position_result as $cle => $valeur) {
+											foreach ($choix_cinquieme_position_result as $cle => $valeur) {
 												foreach ($valeur as $key => $value) {
 													if ($value != NULL) {
-														 $count_choix_sixieme_position = $em->createQuery(
-															"SELECT COUNT(da.choix6) as nb_choix6
+														 $count_choix_cinquieme_position = $em->createQuery(
+															"SELECT COUNT(da.choix5) as nb_choix5
 															FROM VotenmasseVotenmasseBundle:DonnerAvis da
 															WHERE da.vote = ".$vote."
-															AND da.choix6 = :value")
+															AND da.choix5 = :value")
 															->setParameter('value', $value);
 														 
-														 $count_choix_sixieme_position_result[$cpt] = $count_choix_sixieme_position->getResult();
+														 $count_choix_cinquieme_position_result[$cpt] = $count_choix_cinquieme_position->getResult();
 														 $cpt++;
 													}
 													else {
-														$count_choix_sixieme_position_result = $count_choix_sixieme_position;
+														$count_choix_cinquieme_position_result = $count_choix_cinquieme_position;
 													}
 												}
 											}
 											
-											if (isset($count_choix_sixieme_position_result)) {
+											if (isset($count_choix_cinquieme_position_result)) {
 											
-												if ($count_choix_sixieme_position_result != null) {
-													$sixieme_position = (-1);
-													$count_nb_sixieme_position = 0;
+												if ($count_choix_cinquieme_position_result != null) {
+													$cinquieme_position = (-1);
+													$count_nb_cinquieme_position = 0;
 													
-													foreach ($count_choix_sixieme_position_result as $cle => $valeur) {
+													foreach ($count_choix_cinquieme_position_result as $cle => $valeur) {
 														foreach ($valeur as $key => $value) {
-															if ($value['nb_choix6'] > $count_nb_sixieme_position) {
-																$sixieme_position = $cle;
-																$count_nb_sixieme_position = $value['nb_choix6'];
+															if ($value['nb_choix5'] > $count_nb_cinquieme_position) {
+																$cinquieme_position = $cle;
+																$count_nb_cinquieme_position = $value['nb_choix5'];
 															}
 														}
 													}
-													$sixieme = $choix_sixieme_position_result[$sixieme_position]["choix6"];
+													$cinquieme = $choix_cinquieme_position_result[$cinquieme_position]["choix5"];
 												}
 												
-												// Septieme position
-												$choix_septieme_position = $em->createQuery(
-													"SELECT DISTINCT da.choix7
+												// Sixieme position
+												$choix_sixieme_position = $em->createQuery(
+													"SELECT DISTINCT da.choix6
 													FROM VotenmasseVotenmasseBundle:DonnerAvis da
 													WHERE da.vote = ".$vote."
-													AND da.choix7 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme)")
+													AND da.choix6 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme)")
 													->setParameter('premier', $premier)
 													->setParameter('second', $second)
 													->setParameter('troisieme', $troisieme)
 													->setParameter('quatrieme', $quatrieme)
-													->setParameter('cinquieme', $cinquieme)
-													->setParameter('sixieme', $sixieme);
+													->setParameter('cinquieme', $cinquieme);
 
-												$choix_septieme_position_result = $choix_septieme_position->getResult();
+												$choix_sixieme_position_result = $choix_sixieme_position->getResult();
 												
-												$count_choix_septieme_position = array();
+												$count_choix_sixieme_position = array();
 												
 												$cpt = 0;
 
-												foreach ($choix_septieme_position_result as $cle => $valeur) {
+												foreach ($choix_sixieme_position_result as $cle => $valeur) {
 													foreach ($valeur as $key => $value) {
 														if ($value != NULL) {
-															 $count_choix_septieme_position = $em->createQuery(
-																"SELECT COUNT(da.choix7) as nb_choix7
+															 $count_choix_sixieme_position = $em->createQuery(
+																"SELECT COUNT(da.choix6) as nb_choix6
 																FROM VotenmasseVotenmasseBundle:DonnerAvis da
 																WHERE da.vote = ".$vote."
-																AND da.choix7 = :value")
+																AND da.choix6 = :value")
 																->setParameter('value', $value);
 															 
-															 $count_choix_septieme_position_result[$cpt] = $count_choix_septieme_position->getResult();
+															 $count_choix_sixieme_position_result[$cpt] = $count_choix_sixieme_position->getResult();
 															 $cpt++;
 														}
 														else {
-															$count_choix_septieme_position_result = $count_choix_septieme_position;
+															$count_choix_sixieme_position_result = $count_choix_sixieme_position;
 														}
 													}
 												}
 												
-												if (isset($count_choix_septieme_position_result)) {
+												if (isset($count_choix_sixieme_position_result)) {
 												
-													if ($count_choix_septieme_position_result != null) {
-														$septieme_position = (-1);
-														$count_nb_septieme_position = 0;
+													if ($count_choix_sixieme_position_result != null) {
+														$sixieme_position = (-1);
+														$count_nb_sixieme_position = 0;
 														
-														foreach ($count_choix_septieme_position_result as $cle => $valeur) {
+														foreach ($count_choix_sixieme_position_result as $cle => $valeur) {
 															foreach ($valeur as $key => $value) {
-																if ($value['nb_choix7'] > $count_nb_septieme_position) {
-																	$septieme_position = $cle;
-																	$count_nb_septieme_position = $value['nb_choix7'];
+																if ($value['nb_choix6'] > $count_nb_sixieme_position) {
+																	$sixieme_position = $cle;
+																	$count_nb_sixieme_position = $value['nb_choix6'];
 																}
 															}
 														}
-														$septieme = $choix_septieme_position_result[$septieme_position]["choix7"];
+														$sixieme = $choix_sixieme_position_result[$sixieme_position]["choix6"];
 													}
 													
-													// Huitieme position
-													$choix_huitieme_position = $em->createQuery(
-														"SELECT DISTINCT da.choix8
+													// Septieme position
+													$choix_septieme_position = $em->createQuery(
+														"SELECT DISTINCT da.choix7
 														FROM VotenmasseVotenmasseBundle:DonnerAvis da
 														WHERE da.vote = ".$vote."
-														AND da.choix8 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme)")
+														AND da.choix7 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme)")
 														->setParameter('premier', $premier)
 														->setParameter('second', $second)
 														->setParameter('troisieme', $troisieme)
 														->setParameter('quatrieme', $quatrieme)
 														->setParameter('cinquieme', $cinquieme)
-														->setParameter('sixieme', $sixieme)
-														->setParameter('septieme', $septieme);
+														->setParameter('sixieme', $sixieme);
 
-													$choix_huitieme_position_result = $choix_huitieme_position->getResult();
+													$choix_septieme_position_result = $choix_septieme_position->getResult();
 													
-													$count_choix_huitieme_position = array();
+													$count_choix_septieme_position = array();
 													
 													$cpt = 0;
 
-													foreach ($choix_huitieme_position_result as $cle => $valeur) {
+													foreach ($choix_septieme_position_result as $cle => $valeur) {
 														foreach ($valeur as $key => $value) {
 															if ($value != NULL) {
-																 $count_choix_huitieme_position = $em->createQuery(
-																	"SELECT COUNT(da.choix8) as nb_choix8
+																 $count_choix_septieme_position = $em->createQuery(
+																	"SELECT COUNT(da.choix7) as nb_choix7
 																	FROM VotenmasseVotenmasseBundle:DonnerAvis da
 																	WHERE da.vote = ".$vote."
-																	AND da.choix8 = :value")
+																	AND da.choix7 = :value")
 																	->setParameter('value', $value);
 																 
-																 $count_choix_huitieme_position_result[$cpt] = $count_choix_huitieme_position->getResult();
+																 $count_choix_septieme_position_result[$cpt] = $count_choix_septieme_position->getResult();
 																 $cpt++;
 															}
 															else {
-																$count_choix_huitieme_position_result = $count_choix_huitieme_position;
+																$count_choix_septieme_position_result = $count_choix_septieme_position;
 															}
 														}
 													}
 													
-													if (isset($count_choix_huitieme_position_result)) {
+													if (isset($count_choix_septieme_position_result)) {
 													
-														if ($count_choix_huitieme_position_result != null) {
-															$huitieme_position = (-1);
-															$count_nb_huitieme_position = 0;
+														if ($count_choix_septieme_position_result != null) {
+															$septieme_position = (-1);
+															$count_nb_septieme_position = 0;
 															
-															foreach ($count_choix_huitieme_position_result as $cle => $valeur) {
+															foreach ($count_choix_septieme_position_result as $cle => $valeur) {
 																foreach ($valeur as $key => $value) {
-																	if ($value['nb_choix8'] > $count_nb_huitieme_position) {
-																		$huitieme_position = $cle;
-																		$count_nb_huitieme_position = $value['nb_choix8'];
+																	if ($value['nb_choix7'] > $count_nb_septieme_position) {
+																		$septieme_position = $cle;
+																		$count_nb_septieme_position = $value['nb_choix7'];
 																	}
 																}
 															}
-															$huitieme = $choix_huitieme_position_result[$huitieme_position]["choix8"];
+															$septieme = $choix_septieme_position_result[$septieme_position]["choix7"];
 														}
 														
-														// Neuvieme position
-														$choix_neuvieme_position = $em->createQuery(
-															"SELECT DISTINCT da.choix9
+														// Huitieme position
+														$choix_huitieme_position = $em->createQuery(
+															"SELECT DISTINCT da.choix8
 															FROM VotenmasseVotenmasseBundle:DonnerAvis da
 															WHERE da.vote = ".$vote."
-															AND da.choix9 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme, :huitieme)")
+															AND da.choix8 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme)")
 															->setParameter('premier', $premier)
 															->setParameter('second', $second)
 															->setParameter('troisieme', $troisieme)
 															->setParameter('quatrieme', $quatrieme)
 															->setParameter('cinquieme', $cinquieme)
 															->setParameter('sixieme', $sixieme)
-															->setParameter('septieme', $septieme)
-															->setParameter('huitieme', $huitieme);
+															->setParameter('septieme', $septieme);
 
-														$choix_neuvieme_position_result = $choix_neuvieme_position->getResult();
+														$choix_huitieme_position_result = $choix_huitieme_position->getResult();
 														
-														$count_choix_neuvieme_position = array();
+														$count_choix_huitieme_position = array();
 														
 														$cpt = 0;
 
-														foreach ($choix_neuvieme_position_result as $cle => $valeur) {
+														foreach ($choix_huitieme_position_result as $cle => $valeur) {
 															foreach ($valeur as $key => $value) {
 																if ($value != NULL) {
-																	 $count_choix_neuvieme_position = $em->createQuery(
-																		"SELECT COUNT(da.choix9) as nb_choix9
+																	 $count_choix_huitieme_position = $em->createQuery(
+																		"SELECT COUNT(da.choix8) as nb_choix8
 																		FROM VotenmasseVotenmasseBundle:DonnerAvis da
 																		WHERE da.vote = ".$vote."
-																		AND da.choix9 = :value")
+																		AND da.choix8 = :value")
 																		->setParameter('value', $value);
 																	 
-																	 $count_choix_neuvieme_position_result[$cpt] = $count_choix_neuvieme_position->getResult();
+																	 $count_choix_huitieme_position_result[$cpt] = $count_choix_huitieme_position->getResult();
 																	 $cpt++;
 																}
 																else {
-																	$count_choix_neuvieme_position_result = $count_choix_neuvieme_position;
+																	$count_choix_huitieme_position_result = $count_choix_huitieme_position;
 																}
 															}
 														}
 														
-														if (isset($count_choix_neuvieme_position_result)) {
+														if (isset($count_choix_huitieme_position_result)) {
 														
-															if ($count_choix_neuvieme_position_result != null) {
-																$neuvieme_position = (-1);
-																$count_nb_neuvieme_position = 0;
+															if ($count_choix_huitieme_position_result != null) {
+																$huitieme_position = (-1);
+																$count_nb_huitieme_position = 0;
 																
-																foreach ($count_choix_neuvieme_position_result as $cle => $valeur) {
+																foreach ($count_choix_huitieme_position_result as $cle => $valeur) {
 																	foreach ($valeur as $key => $value) {
-																		if ($value['nb_choix9'] > $count_nb_neuvieme_position) {
-																			$neuvieme_position = $cle;
-																			$count_nb_neuvieme_position = $value['nb_choix9'];
+																		if ($value['nb_choix8'] > $count_nb_huitieme_position) {
+																			$huitieme_position = $cle;
+																			$count_nb_huitieme_position = $value['nb_choix8'];
 																		}
 																	}
 																}
-																$neuvieme = $choix_neuvieme_position_result[$neuvieme_position]["choix9"];
+																$huitieme = $choix_huitieme_position_result[$huitieme_position]["choix8"];
 															}
 															
-															// Dixieme position
-															$choix_dixieme_position = $em->createQuery(
-																"SELECT DISTINCT da.choix10
+															// Neuvieme position
+															$choix_neuvieme_position = $em->createQuery(
+																"SELECT DISTINCT da.choix9
 																FROM VotenmasseVotenmasseBundle:DonnerAvis da
 																WHERE da.vote = ".$vote."
-																AND da.choix10 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme, :huitieme, :neuvieme)")
+																AND da.choix9 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme, :huitieme)")
 																->setParameter('premier', $premier)
 																->setParameter('second', $second)
 																->setParameter('troisieme', $troisieme)
@@ -3545,49 +5707,107 @@ class VotenmasseController extends Controller {
 																->setParameter('cinquieme', $cinquieme)
 																->setParameter('sixieme', $sixieme)
 																->setParameter('septieme', $septieme)
-																->setParameter('huitieme', $huitieme)
-																->setParameter('neuvieme', $neuvieme);
+																->setParameter('huitieme', $huitieme);
 
-															$choix_dixieme_position_result = $choix_dixieme_position->getResult();
+															$choix_neuvieme_position_result = $choix_neuvieme_position->getResult();
 															
-															$count_choix_dixieme_position = array();
+															$count_choix_neuvieme_position = array();
 															
 															$cpt = 0;
 
-															foreach ($choix_dixieme_position_result as $cle => $valeur) {
+															foreach ($choix_neuvieme_position_result as $cle => $valeur) {
 																foreach ($valeur as $key => $value) {
 																	if ($value != NULL) {
-																		 $count_choix_dixieme_position = $em->createQuery(
-																			"SELECT COUNT(da.choix10) as nb_choix10
+																		 $count_choix_neuvieme_position = $em->createQuery(
+																			"SELECT COUNT(da.choix9) as nb_choix9
 																			FROM VotenmasseVotenmasseBundle:DonnerAvis da
 																			WHERE da.vote = ".$vote."
-																			AND da.choix10 = :value")
+																			AND da.choix9 = :value")
 																			->setParameter('value', $value);
 																		 
-																		 $count_choix_dixieme_position_result[$cpt] = $count_choix_dixieme_position->getResult();
+																		 $count_choix_neuvieme_position_result[$cpt] = $count_choix_neuvieme_position->getResult();
 																		 $cpt++;
 																	}
 																	else {
-																		$count_choix_dixieme_position_result = $count_choix_dixieme_position;
+																		$count_choix_neuvieme_position_result = $count_choix_neuvieme_position;
 																	}
 																}
 															}
 															
-															if (isset($count_choix_dixieme_position_result)) {
+															if (isset($count_choix_neuvieme_position_result)) {
 															
-																if ($count_choix_dixieme_position_result != null) {
-																	$dixieme_position = (-1);
-																	$count_nb_dixieme_position = 0;
+																if ($count_choix_neuvieme_position_result != null) {
+																	$neuvieme_position = (-1);
+																	$count_nb_neuvieme_position = 0;
 																	
-																	foreach ($count_choix_dixieme_position_result as $cle => $valeur) {
+																	foreach ($count_choix_neuvieme_position_result as $cle => $valeur) {
 																		foreach ($valeur as $key => $value) {
-																			if ($value['nb_choix10'] > $count_nb_dixieme_position) {
-																				$dixieme_position = $cle;
-																				$count_nb_dixieme_position = $value['nb_choix10'];
+																			if ($value['nb_choix9'] > $count_nb_neuvieme_position) {
+																				$neuvieme_position = $cle;
+																				$count_nb_neuvieme_position = $value['nb_choix9'];
 																			}
 																		}
 																	}
-																	$dixieme = $choix_dixieme_position_result[$dixieme_position]["choix10"];
+																	$neuvieme = $choix_neuvieme_position_result[$neuvieme_position]["choix9"];
+																}
+																
+																// Dixieme position
+																$choix_dixieme_position = $em->createQuery(
+																	"SELECT DISTINCT da.choix10
+																	FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																	WHERE da.vote = ".$vote."
+																	AND da.choix10 NOT IN (:premier, :second, :troisieme, :quatrieme, :cinquieme, :sixieme, :septieme, :huitieme, :neuvieme)")
+																	->setParameter('premier', $premier)
+																	->setParameter('second', $second)
+																	->setParameter('troisieme', $troisieme)
+																	->setParameter('quatrieme', $quatrieme)
+																	->setParameter('cinquieme', $cinquieme)
+																	->setParameter('sixieme', $sixieme)
+																	->setParameter('septieme', $septieme)
+																	->setParameter('huitieme', $huitieme)
+																	->setParameter('neuvieme', $neuvieme);
+
+																$choix_dixieme_position_result = $choix_dixieme_position->getResult();
+																
+																$count_choix_dixieme_position = array();
+																
+																$cpt = 0;
+
+																foreach ($choix_dixieme_position_result as $cle => $valeur) {
+																	foreach ($valeur as $key => $value) {
+																		if ($value != NULL) {
+																			 $count_choix_dixieme_position = $em->createQuery(
+																				"SELECT COUNT(da.choix10) as nb_choix10
+																				FROM VotenmasseVotenmasseBundle:DonnerAvis da
+																				WHERE da.vote = ".$vote."
+																				AND da.choix10 = :value")
+																				->setParameter('value', $value);
+																			 
+																			 $count_choix_dixieme_position_result[$cpt] = $count_choix_dixieme_position->getResult();
+																			 $cpt++;
+																		}
+																		else {
+																			$count_choix_dixieme_position_result = $count_choix_dixieme_position;
+																		}
+																	}
+																}
+																
+																if (isset($count_choix_dixieme_position_result)) {
+																
+																	if ($count_choix_dixieme_position_result != null) {
+																		$dixieme_position = (-1);
+																		$count_nb_dixieme_position = 0;
+																		
+																		foreach ($count_choix_dixieme_position_result as $cle => $valeur) {
+																			foreach ($valeur as $key => $value) {
+																				if ($value['nb_choix10'] > $count_nb_dixieme_position) {
+																					$dixieme_position = $cle;
+																					$count_nb_dixieme_position = $value['nb_choix10'];
+																				}
+																			}
+																		}
+																		$dixieme = $choix_dixieme_position_result[$dixieme_position]["choix10"];
+																	}
 																}
 															}
 														}
@@ -3598,72 +5818,9 @@ class VotenmasseController extends Controller {
 									}
 								}
 							}
-						}
-						
-						if (isset($dixieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme,
-								  'quatrieme' => $quatrieme,
-								  'cinquieme' => $cinquieme,
-								  'sixieme' => $sixieme,
-								  'septieme' => $septieme,
-								  'huitieme' => $huitieme,
-								  'neuvieme' => $neuvieme,
-								  'dixieme' => $dixieme));
-						}
-						if (isset($neuvieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme,
-								  'quatrieme' => $quatrieme,
-								  'cinquieme' => $cinquieme,
-								  'sixieme' => $sixieme,
-								  'septieme' => $septieme,
-								  'huitieme' => $huitieme,
-								  'neuvieme' => $neuvieme));
-						}
-						if (isset($huitieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme,
-								  'quatrieme' => $quatrieme,
-								  'cinquieme' => $cinquieme,
-								  'sixieme' => $sixieme,
-								  'septieme' => $septieme,
-								  'huitieme' => $huitieme));
-						}
-						if (isset($septieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme,
-								  'quatrieme' => $quatrieme,
-								  'cinquieme' => $cinquieme,
-								  'sixieme' => $sixieme,
-								  'septieme' => $septieme));
-						}
-						if (isset($sixieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+							
+							if (isset($dixieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
 									  'vote_id' => $vote,
 									  'vote_nom' => $infos_vote->getNom(),
 									  'vote_texte' => $infos_vote->getTexte(),
@@ -3673,69 +5830,132 @@ class VotenmasseController extends Controller {
 									  'troisieme' => $troisieme,
 									  'quatrieme' => $quatrieme,
 									  'cinquieme' => $cinquieme,
-									  'sixieme' => $sixieme));
-						}
-						if (isset($cinquieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme,
-								  'quatrieme' => $quatrieme,
-								  'cinquieme' => $cinquieme));
-						}
-						if (isset($quatrieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme,
-								  'quatrieme' => $quatrieme));
-						}
-						if (isset($troisieme)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second,
-								  'troisieme' => $troisieme));
-						}
-						if (isset($second)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier,
-								  'second' => $second));
-						}
-						if (isset($premier)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-								  'premier' => $premier));
-						}
-						if (!isset($premier)) {
-							return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
-								  'vote_id' => $vote,
-								  'vote_nom' => $infos_vote->getNom(),
-								  'vote_texte' => $infos_vote->getTexte(),
-								  'groupe_associe' => $infos_vote->getGroupeAssocie()));
+									  'sixieme' => $sixieme,
+									  'septieme' => $septieme,
+									  'huitieme' => $huitieme,
+									  'neuvieme' => $neuvieme,
+									  'dixieme' => $dixieme));
+							}
+							if (isset($neuvieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second,
+									  'troisieme' => $troisieme,
+									  'quatrieme' => $quatrieme,
+									  'cinquieme' => $cinquieme,
+									  'sixieme' => $sixieme,
+									  'septieme' => $septieme,
+									  'huitieme' => $huitieme,
+									  'neuvieme' => $neuvieme));
+							}
+							if (isset($huitieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second,
+									  'troisieme' => $troisieme,
+									  'quatrieme' => $quatrieme,
+									  'cinquieme' => $cinquieme,
+									  'sixieme' => $sixieme,
+									  'septieme' => $septieme,
+									  'huitieme' => $huitieme));
+							}
+							if (isset($septieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second,
+									  'troisieme' => $troisieme,
+									  'quatrieme' => $quatrieme,
+									  'cinquieme' => $cinquieme,
+									  'sixieme' => $sixieme,
+									  'septieme' => $septieme));
+							}
+							if (isset($sixieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+										  'vote_id' => $vote,
+										  'vote_nom' => $infos_vote->getNom(),
+										  'vote_texte' => $infos_vote->getTexte(),
+										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+										  'premier' => $premier,
+										  'second' => $second,
+										  'troisieme' => $troisieme,
+										  'quatrieme' => $quatrieme,
+										  'cinquieme' => $cinquieme,
+										  'sixieme' => $sixieme));
+							}
+							if (isset($cinquieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second,
+									  'troisieme' => $troisieme,
+									  'quatrieme' => $quatrieme,
+									  'cinquieme' => $cinquieme));
+							}
+							if (isset($quatrieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second,
+									  'troisieme' => $troisieme,
+									  'quatrieme' => $quatrieme));
+							}
+							if (isset($troisieme)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second,
+									  'troisieme' => $troisieme));
+							}
+							if (isset($second)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier,
+									  'second' => $second));
+							}
+							if (isset($premier)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
+									  'premier' => $premier));
+							}
+							if (!isset($premier)) {
+								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
+									  'vote_id' => $vote,
+									  'vote_nom' => $infos_vote->getNom(),
+									  'vote_texte' => $infos_vote->getTexte(),
+									  'groupe_associe' => $infos_vote->getGroupeAssocie()));
+							}
 						}
 					}
-				}
-				else {
-					return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+					else {
+						return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+					}
 				}
 			}
 			
@@ -7015,12 +9235,12 @@ class VotenmasseController extends Controller {
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
+		$i = $session->get('invite');
 		
 		if ($u != NULL) {
 			$utilisateur = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 					->findOneByLogin($u);
-			
 		}
 		
 		$groupes_utilisateurs = NULL;
@@ -7031,7 +9251,7 @@ class VotenmasseController extends Controller {
 		
 		$req_groupes_utilisateurs = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
-			->findByGroupe($groupe_infos);
+			->findBy(array('groupe' => $groupe_infos, 'accepte' => true));
 		
 		foreach ($req_groupes_utilisateurs as $cle => $valeur) {
 			if (preg_match("/Invité/", $valeur->getUtilisateur()->getLogin()) == false) {
@@ -7093,6 +9313,22 @@ class VotenmasseController extends Controller {
 				}
 			}
 		}
+		if (isset($i)) {
+			if ($valide == false) {
+				$invite = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($i);
+			
+				$req_groupes_utilisateurs_invite = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+					->findOneBy(array('groupe' => $groupe_infos, 'utilisateur' => $invite));
+				
+				if ($req_groupes_utilisateurs_invite != NULL) {
+					$valide = true;
+				}
+			}
+		}
+		
 		
 		if ($groupe_infos == NULL) {
 			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
@@ -7114,14 +9350,251 @@ class VotenmasseController extends Controller {
 	}
 	
 	public function quitterGroupeAction($groupe_id = null) {
-		echo "hello";die;
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		$i = $session->get('invite');
+		
+		if ($u != NULL) {
+			$utilisateur = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($u);
+			
+			$groupe_infos = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findOneById($groupe_id);	
+				
+			if (isset($groupe_infos)) {				
+				if ($groupe_infos->getAdministrateur() == $u) {
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+				}
+				
+				$groupe_current_utilisateur_current = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+					->findOneBy(array('groupe' => $groupe_infos, 'utilisateur' => $utilisateur));
+					
+				if ($groupe_current_utilisateur_current == NULL) {
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+				}
+				
+				 $em = $this->getDoctrine()->getManager();
+				 $em->remove($groupe_current_utilisateur_current);
+				 $em->flush();
+				
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+			}
+			else {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+		}
+		
+		// Ici on traite les invités
+		$invite = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneByLogin($i);
+		
+		$groupe_infos = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);	
+			
+		if (isset($groupe_infos)) {
+			if ($groupe_infos->getEtat() != "Groupe public") {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+			
+			$groupe_current_utilisateur_current = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+				->findOneBy(array('groupe' => $groupe_infos, 'utilisateur' => $invite));
+				
+			if ($groupe_current_utilisateur_current == NULL) {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+			
+			 $em = $this->getDoctrine()->getManager();
+			 $em->remove($groupe_current_utilisateur_current);
+			 $em->flush();
+			
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		else {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+		}
 	}
 	
 	public function rejoindreGroupeAction($groupe_id = null) {
-		echo "hello";die;
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		$i = $session->get('invite');
+		
+		if ($u != NULL) {
+			$utilisateur = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($u);
+			
+			$groupe_infos = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findOneById($groupe_id);	
+				
+			if (isset($groupe_infos)) {				
+				if ($groupe_infos->getAdministrateur() == $u) {
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+				}
+				
+				$groupe_current_utilisateur_current = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+					->findOneBy(array('groupe' => $groupe_infos, 'utilisateur' => $utilisateur));
+					
+				if ($groupe_current_utilisateur_current != NULL) {
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+				}
+				
+				$demande = new GroupeUtilisateur;
+				
+				$demande->setGroupe($groupe_infos);
+				$demande->setUtilisateur($utilisateur);
+				$demande->setModerateur(false);
+				$demande->setAccepte(false);
+				
+				if ($request->request->get('message_rejoindre_groupe') != NULL) {
+					$demande->setMessage($request->request->get('message_rejoindre_groupe'));
+				}
+				
+				$em = $this->getDoctrine()->getManager();
+				$em->persist($demande);
+				$em->flush();
+				
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+			}
+			else {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+		}
+		
+		// Ici on traite les invités
+		if ($i == NULL) {
+			  $utilisateur = new Utilisateur;
+									  
+			  $pass = "abcdefghijklmnopqrstuvwxyz987654321012345643198536985prokfjaidinend";
+			  $pass_md5 = md5($pass);
+				
+			  $utilisateur->setMotDePasse($pass_md5);
+			  $date = date_create(date('Y-m-d'));
+			  
+			  $utilisateur->setDateDeNaissance($date);
+			  $utilisateur->setSexe('H');
+			  
+			  $em = $this->getDoctrine()->getManager();
+			  $req_max_id = $em->createQuery(
+				'SELECT MAX(u.id) AS max_id
+				FROM VotenmasseVotenmasseBundle:Utilisateur u');
+
+			  $max_id = $req_max_id->getResult();
+
+			  $base = "Invité_";
+			  $num = $max_id[0]["max_id"] + 1;
+			  $invite = $base.$num;
+			  
+			  $utilisateur->setMail($invite."@fake.com");
+			  $utilisateur->setPrenom($invite);
+			  $utilisateur->setNom($invite);
+			  $utilisateur->setLogin($invite);
+			  
+			  $session->set('invite', $invite);
+			  $i = $invite;
+					
+			  // On enregistre notre objet $utilisateur dans la base de données
+			  $em->persist($utilisateur);
+			  $em->flush();
+		}
+		
+		$invite = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneByLogin($i);
+		
+		$groupe_infos = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);	
+
+		if (isset($groupe_infos)) {
+			if ($groupe_infos->getEtat() != "Groupe public") {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+			
+			$groupe_current_utilisateur_current = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+				->findOneBy(array('groupe' => $groupe_infos, 'utilisateur' => $invite));
+			
+			if ($groupe_current_utilisateur_current != NULL) {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+
+			$demande = new GroupeUtilisateur;
+			
+			$demande->setGroupe($groupe_infos);
+			$demande->setUtilisateur($invite);
+			$demande->setModerateur(false);
+			$demande->setAccepte(false);
+			
+			if ($request->request->get('message_rejoindre_groupe') != NULL) {
+				$demande->setMessage($request->request->get('message_rejoindre_groupe'));
+			}
+			
+			$em = $this->getDoctrine()->getManager();
+			$em->persist($demande);
+			$em->flush();
+			
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		else {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+		}
 	}
 	
 	public function supprimerGroupeAction($groupe_id = null) {
-		echo "hello";die;
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		
+		if ($u != NULL) {
+			$utilisateur = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($u);
+			
+			$groupe_infos = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findOneById($groupe_id);	
+				
+			if (isset($groupe_infos)) {				
+				if ($groupe_infos->getAdministrateur() == $u) {
+					$groupe_current_utilisateurs = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+						->findByGroupe($groupe_infos);
+					
+					$em = $this->getDoctrine()->getManager();
+					
+					if ($groupe_current_utilisateurs != NULL) {
+						foreach ($groupe_current_utilisateurs as $cle => $valeur) {
+							$em->remove($valeur);
+							$em->flush();
+						}
+					}
+					
+					$em->remove($groupe_infos);
+					$em->flush();
+					
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				}
+				else {
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+				}	
+			}
+			else {
+				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+			}
+		}
+		else {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
+		}
 	}
 }

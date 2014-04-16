@@ -1,0 +1,30 @@
+<?php
+
+namespace Votenmasse\VotenmasseBundle\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * UtilisateurVote
+ *
+ * @ORM\Table()
+ * @ORM\Entity(repositoryClass="Votenmasse\VotenmasseBundle\Entity\UtilisateurVoteRepository")
+ */
+class UtilisateurVote
+{
+	// UtilisateurVote = Modérateurs 
+
+    /**
+	  * @ORM\Id
+	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Vote")
+	  */
+	private $vote;
+
+	/**
+	  * @ORM\Id
+	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
+	  */
+	private $utilisateur;
+
+
+}

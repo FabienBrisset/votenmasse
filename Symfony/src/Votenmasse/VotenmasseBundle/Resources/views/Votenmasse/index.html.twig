@@ -56,7 +56,11 @@
 													<td>
 														<center><b>Administrateur</b></center>
 													</td>
+													<td>
+														<center><b>Accepté</b></center>
+													</td>
 												</tr>
+												{% set cpt2 = 0 %}
 												{% for groupe in groupes %}
 													{% if groupe is not null %}
 														<tr class = "liste_groupes" onclick="document.location.href='groupe/{{ groupe.id }}'">
@@ -80,6 +84,15 @@
 															<td>
 																<center>{{ groupe.administrateur }}</center>
 															</td>
+															<td>
+																{% if acceptes[cpt2] is sameas(true) %}
+																	<center>Oui</center>
+																{% endif %}
+																{% if acceptes[cpt2] is sameas(false) %}
+																	<center>En attente</center>
+																{% endif %}
+															</td>
+															{% set cpt2 = cpt2 + 1 %}
 														</tr>
 													{% endif %}
 												{% endfor %}
@@ -173,14 +186,139 @@
 									{% endif %}
 								  </div>
 								  <h3>Modération de groupes</h3>
-								  <div>
-									<p><a href = "Mon premier groupe à modérer">Mon premier groupe à modérer (membre ou admin ou modo)</a></p>
-									<p><a href = "Mon second groupe à modérer">Mon second groupe à modérer (membre ou admin ou modo)</a></p>
+								    <div>
+									{% if groupes_moderation is defined %}
+										{% if groupes_moderation is not null %}
+											<table>
+												<tr>
+													<td>
+														<center><b>Type</b></center>
+													</td>
+													<td>
+														<center><b>Nom</b></center>
+													</td>
+													<td>
+														<center><b>Description</b></center>
+													</td>
+													<td>
+														<center><b>Administrateur</b></center>
+													</td>
+												</tr>
+												{% set cpt2 = 0 %}
+												{% for groupe_moderation in groupes_moderation %}
+													{% if groupe_moderation is not null %}
+														<tr class = "liste_groupes" onclick="document.location.href='groupe/{{ groupe_moderation.id }}'">
+															<td>
+																{% if groupe_moderation.etat is sameas('Groupe public') %}
+																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+																{% endif %} 
+																{% if groupe_moderation.etat is sameas('Groupe réservé aux inscrits') %}
+																	<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+																{% endif %}
+																{% if groupe_moderation.etat is sameas('Groupe privé') %}
+																	<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{{ groupe_moderation.nom }}</center>
+															</td>
+															<td>
+																<center>{{ groupe_moderation.description }} </center>
+															</td>
+															<td>
+																<center>{{ groupe_moderation.administrateur }}</center>
+															</td>
+														</tr>
+													{% endif %}
+												{% endfor %}
+											</table>
+										{% endif %}
+										{% if groupes is null %}
+											Aucun groupe
+										{% endif %}
+									{% endif %}
+									{% if groupes is not defined %}
+										Aucun groupe
+									{% endif %}
 								  </div>
 								  <h3>Modération de votes</h3>
-								  <div>
-									<p><a href = "Mon premier vote à modérer">Mon premier vote à modérer (membre ou admin ou modo)</a></p>
-									<p><a href = "Mon second vote à modérer">Mon second vote à modérer (membre ou admin ou modo)</a></p>
+								   <div>
+									{% if votes_moderation is defined %}
+										{% if votes_moderation is not null %}
+											<table>
+												<tr>
+													<td>
+														<center><b>Type</b></center>
+													</td>
+													<td>
+														<center><b>Nom</b></center>
+													</td>
+													<td>
+														<center><b>Description</b></center>
+													</td>
+													<td>
+														<center><b>Date de fin</b></center>
+													</td>
+													<td>
+														<center><b>Groupe associé</b></center>
+													</td>
+													<td>
+														<center><b>Etat</b></center>
+													</td>
+													<td>
+														<center><b>Créateur</b></center>
+													</td>
+												</tr>
+												{% set cpt = 0 %}
+												{% for vote_moderation in votes_moderation %}
+													<tr class = "liste_votes" onclick="document.location.href='vote/{{ vote_moderation.id }}'">
+															<td>
+																{% if vote_moderation.type is sameas('Vote public') %}
+																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+																{% endif %} 
+																{% if vote_moderation.type is sameas('Vote réservé aux inscrits') %}
+																	<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+																{% endif %}
+																{% if vote_moderation.type is sameas('Vote privé') %}
+																	<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{{ vote_moderation.nom }}</center>
+															</td>
+															<td>
+																<center>{{ vote_moderation.texte }} </center>
+															</td>
+															<td>
+																<center>{{ vote_moderation.dateDeFin|date("d/m/y") }}</center>
+															</td>
+															<td>
+																{% if vote_moderation.groupeAssocie is not null %}
+																	<center>{{ vote_moderation.groupeAssocie }}</center>
+																{% endif %}
+																{% if vote_moderation.groupeAssocie is null %}
+																	<center>Aucun</center>
+																{% endif %}
+															</td>
+															<td>
+																<center>{% if vote_moderation.etat is sameas(true) %} En cours {% endif %} {% if vote_moderation.etat is sameas(false) %} Terminé {% endif %}</center>
+															</td>
+															<td>
+																<center>{{ votes_moderation_createurs[cpt] }}</center>
+															</td>
+															{% set cpt = cpt + 1 %}
+														</a>
+													</tr>
+												{% endfor %}
+											</table>
+										{% endif %}
+										{% if votes_moderation is null %}
+											Aucun vote
+										{% endif %}
+									{% endif %}
+									{% if votes_moderation is not defined %}
+										Aucun vote
+									{% endif %}
 								  </div>
 								</div>
 							</div>

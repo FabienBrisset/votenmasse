@@ -44,8 +44,7 @@
 									Nom : {{ groupe.nom }} <br>
 									Description : {{ groupe.description }} <br>
 									Administrateur : {{ groupe.administrateur }} <br>
-									Etat : {{ groupe.etat }} <br>
-									Actif : {% if groupe.actif is sameas(true) %} Oui {% endif %} {% if groupe.actif is sameas(false) %} Non {% endif %} <br><br><br>
+									Etat : {{ groupe.etat }} <br><br><br><br>
 								{% endfor %}
 							{% endif %}
 						</div>

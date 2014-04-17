@@ -196,27 +196,4 @@ class Groupe
     {
         return $this->moderateurs;
     }
-	
-	/**
-     * Set actif
-     *
-     * @param string $actif
-     * @return Groupe
-     */
-    public function setActif($actif)
-    {
-        $this->actif = $actif;
-
-        return $this;
-    }
-
-    /**
-     * Get actif
-     *
-     * @return string 
-     */
-    public function getActif()
-    {
-        return $this->actif;
-    }
 }

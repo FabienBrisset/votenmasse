@@ -8,22 +8,39 @@
 
 	<table class="table">
 		<legend><b>Groupes</b></legend>
-		{% if message is not null %}
-			<br><br><center>{{ message }}</center>
+		
+		{% if utilisateur is defined %}
+			<tr>
+				<td>
+					<div class="well">
+						<center>
+							<h4><b>Filtrer</b></h4><br>
+							<form action="{{ path('votenmasse_votenmasse_groupes') }}" method="post">
+								Type
+								<select style = "height:65px; margin-left:15px;" multiple name="type[]">
+									<option value = "public">Public</option>
+									<option value = "réservé">Réservé aux inscrits</option>
+									<option value = "privé">Privé</option>
+								</select><br><br>
+								<button class="btn btn-primary btn-mini" type="submit">Valider <i class="icon-white icon-ok-sign"></i> </button>
+							</form>
+						</center>
+					</div>
+				</td>
+			</tr>
 		{% endif %}
-		{% if message is null %}
-			{% if utilisateur is defined %}
+		{% if invite is defined %}
+			{% if invite is not null %}
 				<tr>
 					<td>
 						<div class="well">
 							<center>
 								<h4><b>Filtrer</b></h4><br>
 								<form action="{{ path('votenmasse_votenmasse_groupes') }}" method="post">
-									Type
-									<select style = "height:65px; margin-left:15px;" multiple name="type[]">
-										<option value = "public">Public</option>
-										<option value = "réservé">Réservé aux inscrits</option>
-										<option value = "privé">Privé</option>
+									Filtre
+									<select style = "height:65px; margin-left:15px;" multiple name="filtre[]">
+										<option value = "mes_groupes">Mes groupes</option>
+										<option value = "autres_groupes">Les autres groupes</option>
 									</select><br><br>
 									<button class="btn btn-primary btn-mini" type="submit">Valider <i class="icon-white icon-ok-sign"></i> </button>
 								</form>
@@ -32,58 +49,64 @@
 					</td>
 				</tr>
 			{% endif %}
-			<tr>
-				<td>
-					<div class="well">
-						{% if groupes is defined %}
-							{% if groupes is not null %}
-								<table align = "center">
-									<tr>
-										<td>
-											<center><b>Type</b></center>
-										</td>
-										<td>
-											<center><b>Nom</b></center>
-										</td>
-										<td>
-											<center><b>Description</b></center>
-										</td>
-										<td>
-											<center><b>Administrateur</b></center>
-										</td>
-									</tr>
-									{% for groupe in groupes %}
-										<tr class = "liste_groupes" onclick="document.location.href='../groupe/{{ groupe.id }}'">
-												<td>
-													{% if groupe.etat is sameas('Groupe public') %}
-														<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
-													{% endif %} 
-													{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
-														<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
-													{% endif %}
-													{% if groupe.etat is sameas('Groupe privé') %}
-														<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
-													{% endif %}
-												</td>
-												<td>
-													<center>{{ groupe.nom }}</center>
-												</td>
-												<td>
-													<center>{{ groupe.description }} </center>
-												</td>
-												<td>
-													<center>{{ groupe.administrateur }}</center>
-												</td>
-											</a>
-										</tr>
-									{% endfor %}
-								</table>
-							{% endif %}
-						{% endif %}
-					</div>
-				</td>
-			</tr>
 		{% endif %}
+		<tr>
+			<td>
+				<div class="well">
+					{% if groupes is defined %}
+						{% if groupes is not null %}
+							<table align = "center">
+								<tr>
+									<td>
+										<center><b>Type</b></center>
+									</td>
+									<td>
+										<center><b>Nom</b></center>
+									</td>
+									<td>
+										<center><b>Description</b></center>
+									</td>
+									<td>
+										<center><b>Administrateur</b></center>
+									</td>
+								</tr>
+								{% for groupe in groupes %}
+									<tr class = "liste_groupes" onclick="document.location.href='../groupe/{{ groupe.id }}'">
+											<td>
+												{% if groupe.etat is sameas('Groupe public') %}
+													<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+												{% endif %} 
+												{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
+													<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+												{% endif %}
+												{% if groupe.etat is sameas('Groupe privé') %}
+													<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+												{% endif %}
+											</td>
+											<td>
+												<center>{{ groupe.nom }}</center>
+											</td>
+											<td>
+												<center>{{ groupe.description }} </center>
+											</td>
+											<td>
+												<center>{{ groupe.administrateur }}</center>
+											</td>
+										</a>
+									</tr>
+								{% endfor %}
+							</table>
+						{% endif %}
+						{% if groupes is null %}
+							<center>{{ message }}</center>
+						{% endif %}
+					{% endif %}
+					{% if groupes is not defined %}
+						<center>{{ message }}</center>
+					{% endif %}
+				</div>
+			</td>
+		</tr>
 	</table>
 
 {% endblock %}

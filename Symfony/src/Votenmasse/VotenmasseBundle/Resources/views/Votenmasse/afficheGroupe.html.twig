@@ -171,6 +171,85 @@
 										Aucun vote n'est associé au groupe {{ groupe.nom }}
 									{% endif %}
 								</div>
+								{% if valide is defined %}
+									{% if valide is sameas(true) %}
+										{% if moderateur is sameas(true) or administrateur is sameas(true) %}
+											<h3>Liste des demandes pour rejoindre le groupe</h3>
+											{% if demandes is not null %}
+												<div>
+													<table align = "center">
+														<tr>
+															<td>
+																<center><b>Nom</b></center>
+															</td>
+															<td>
+																<center><b>Prénom</b></center>
+															</td>
+															<td>
+																<center><b>Login</b></center>
+															</td>
+															<td>
+																<center><b>Message</b></center>
+															</td>
+															<td>
+																<center><b>Accepter</b></center>
+															</td>
+															<td>
+																<center><b>Refuser</b></center>
+															</td>
+														</tr>
+														{% for demande in demandes %}
+															<tr>
+																<td>
+																	<center>{{ demande.utilisateur.nom }}</center>
+																</td>
+																<td>
+																	<center>{{ demande.utilisateur.prenom }} </center>
+																</td>
+																<td>
+																	<center>{{ demande.utilisateur.login }}</center>
+																</td>
+																<td>
+																	<center>
+																		{% if demande.message is null %}
+																			Aucun message
+																		{% endif %}
+																		{% if demande.message is not null %}
+																				{{ demande.message }}
+																		{% endif %}
+																	</center>
+																</td>
+																<td>
+																	<center>
+																		<form action="{{ path('votenmasse_votenmasse_groupe_accepter_utilisateur') }}" method="post">
+																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																			<input type = "hidden" name = "utilisateur_id" value = {{ demande.utilisateur.id }} />
+																			<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+																		</form>
+																	</center>
+																</td>
+																<td>
+																	<center>
+																		<form action="{{ path('votenmasse_votenmasse_groupe_refuser_utilisateur') }}" method="post">
+																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																			<input type = "hidden" name = "utilisateur_id" value = {{ demande.utilisateur.id }} />
+																			<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+																		</form>
+																	</center>
+																</td>
+															</tr>
+														{% endfor %}
+													</table>
+												</div>
+											{% endif %}
+											{% if demandes is null %}
+												<div>
+													Aucune demande pour rejoindre le groupe {{ groupe.nom }}
+												</div>
+											{% endif %}
+										{% endif %}
+									{% endif %}
+								{% endif %}
 							</div>
 						</div>
 					</td>
@@ -178,10 +257,15 @@
 			{% endif %}
 		</tr>
 	</table>
-	{% if valide is defined %}
+	{% if valide is defined %}	
 		<center>
 			{% if valide is sameas(true) %}
-				{% if administrateur_groupe_infos.login is not sameas(utilisateur)%}
+				{% if membre is sameas(true) %}
+					<form action="{{ path('votenmasse_votenmasse_quitter_groupe', { 'groupe_id': groupe_id }) }}" method="post">
+						<button class="btn btn-primary btn-mini" type="submit">Quitter le groupe <i class="icon-white icon-ok-sign"></i> </button>
+					</form>
+				{% endif %}
+				{% if moderateur is sameas(true) %}
 					<form action="{{ path('votenmasse_votenmasse_quitter_groupe', { 'groupe_id': groupe_id }) }}" method="post">
 						<button class="btn btn-primary btn-mini" type="submit">Quitter le groupe <i class="icon-white icon-ok-sign"></i> </button>
 					</form>

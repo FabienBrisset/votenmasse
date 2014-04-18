@@ -31,7 +31,7 @@ class VotenmasseController extends Controller {
 			// Je récupère tous les votes
 			$votes_admin = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
-				->findBy(array('createur' => $utilisateur->getId()), array('dateDeCreation' => 'desc'), 10);
+				->findBy(array('createur' => $utilisateur), array('dateDeCreation' => 'desc'), 10);
 				
 			$votes_utilisateur_moderation = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
@@ -60,9 +60,7 @@ class VotenmasseController extends Controller {
 		
 			if ($votes_moderation != NULL) {
 				foreach ($votes_moderation as $cle => $valeur) {
-					$vote_moderation_createurs = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-					->findOneById($valeur->getCreateur());
+					$vote_moderation_createurs = $valeur->getCreateur();
 
 					$votes_moderation_createurs[$cle] = $vote_moderation_createurs->getLogin();
 				}		
@@ -81,7 +79,7 @@ class VotenmasseController extends Controller {
 			
 			$groupes_administrateur = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
-				->findByAdministrateur($u);
+				->findByAdministrateur($utilisateur);
 				
 			if (isset($groupes_administrateur )) {
 				if ($groupes_administrateur != NULL) {
@@ -141,7 +139,7 @@ class VotenmasseController extends Controller {
 
 			if ($groupes_final != NULL) {
 				foreach ($groupes_final as $cle => $valeur) {
-					if ($valeur->getAdministrateur() != $u) {
+					if ($valeur->getAdministrateur() != $utilisateur) {
 						$accepte = $this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 						->findOneBy(array('groupe' => $valeur->getId(), 'utilisateur' => $utilisateur));
@@ -194,6 +192,10 @@ class VotenmasseController extends Controller {
 			}
 			else {
 				$avis_existe_deja_pour_last_vote = false;
+			}
+			
+			if ($last_groupes == NULL) {
+				$last_groupes = NULL;
 			}
 		
 			if ($votes != NULL && $groupes_final != NULL) {
@@ -405,6 +407,7 @@ class VotenmasseController extends Controller {
 			$pass_md5 = md5($pass);
 			
 			$utilisateur->setMotDePasse($pass_md5);
+			$utilisateur->setAccepte(true);
 				
 			// On enregistre notre objet $utilisateur dans la base de données
 			$em = $this->getDoctrine()->getManager();
@@ -472,7 +475,7 @@ class VotenmasseController extends Controller {
 		if (isset($groupes_utilisateur_courant)) {
 			$groupes_utilisateur_courant_a_ajouter = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
-				->findByAdministrateur($u);
+				->findByAdministrateur($infos_utilisateur);
 				
 			$taille_groupes_utilisateur_ou_ajouter = sizeof($groupes_utilisateur_courant);	
 				
@@ -484,7 +487,7 @@ class VotenmasseController extends Controller {
 		else {
 			$groupes_utilisateur_courant = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
-				->findByAdministrateur($u);
+				->findByAdministrateur($infos_utilisateur);
 		}
 		
 		if ($groupes_utilisateur_courant != NULL) {
@@ -532,28 +535,37 @@ class VotenmasseController extends Controller {
 					 ->add('choix10', 'text', array( 
 											'required' => false))
 				     ->getForm();
-		
-		$vote_existe_deja = $this->getDoctrine()
-			->getRepository('VotenmasseVotenmasseBundle:Vote')
-			->findOneByNom($request->request->get("form")['nom']);
-			
-		if($vote_existe_deja != NULL) {
-				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
-				  'form' => $form->createView(),
-				  'utilisateur' => $u,
-				  'erreur' => "Un vote du même nom existe déjà, veuillez en choisir un autre"));
-		}
 
 		// On vérifie que l'on soit en POST
 		if ($request->getMethod() == 'POST') {
 		  // On fait le lien Requête <-> Formulaire
 		  $form->bind($request);
 		  
+		  $vote_existe_deja = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findOneByNom($request->request->get("form")['nom']);
+			
+		  if($vote_existe_deja != NULL) {
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+				  'form' => $form->createView(),
+				  'utilisateur' => $u,
+				  'erreur' => "Un vote du même nom existe déjà, veuillez en choisir un autre"));
+		  }
+		  
 		  // Si l'utilisateur a demandé à associer un vote à un groupe
 		  if($request->request->get("form")['groupeAssocie'] != NULL) {
 			$groupeAssocie = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
 				->findOneByNom($request->request->get("form")['groupeAssocie']);
+				
+			$date_du_jour = date_create(date('Y-m-d'));
+			$date_fin = date_create($request->request->get("form")['dateDeFin']['month'].'/'.$request->request->get("form")['dateDeFin']['day'].'/'.$request->request->get("form")['dateDeFin']['year']);
+			if (strtotime($date_fin->format("d-m-y")) < strtotime($date_du_jour->format("d-m-y"))) {
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+					'form' => $form->createView(),
+					'message_erreur' => "La date de fin doit être supérieure à la date du jour",
+					'utilisateur' => $u));
+			}	
 			
 			// On regarde si le groupe existe
 			if($groupeAssocie != NULL) {
@@ -588,6 +600,15 @@ class VotenmasseController extends Controller {
 		  }
 		  // S'il n'a pas associé de groupe au vote on vérifie que le vote ne soit pas privé
 		  else {
+			$date_du_jour = date_create(date('Y-m-d'));
+			$date_fin = date_create($request->request->get("form")['dateDeFin']['month'].'/'.$request->request->get("form")['dateDeFin']['day'].'/'.$request->request->get("form")['dateDeFin']['year']);
+			if (strtotime($date_fin->format("d-m-y")) < strtotime($date_du_jour->format("d-m-y"))) {
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+					'form' => $form->createView(),
+					'message_erreur_date' => "La date de fin doit être supérieure à la date du jour",
+					'utilisateur' => $u));
+			}
+		  
 			if($request->request->get("form")['type'] == 'Vote privé') {
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
 					'form' => $form->createView(),
@@ -600,7 +621,7 @@ class VotenmasseController extends Controller {
 				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 				->findOneByLogin($u);
 		  
-		  $vote->setCreateur($createur->getId());
+		  $vote->setCreateur($createur);
 
 		  // On enregistre notre objet $vote dans la base de données
 		  $em = $this->getDoctrine()->getManager();
@@ -631,6 +652,10 @@ class VotenmasseController extends Controller {
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 		
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneByLogin($u);
+		
 		$groupe = new Groupe;
 		
 		// On récupère tous les utilisateurs de la base pour que le créateur du groupe puisse ajouter des membres au groupe
@@ -640,8 +665,8 @@ class VotenmasseController extends Controller {
 		
 		if ($utilisateurs != NULL) {
 			for ($i = 0; $i<sizeof($utilisateurs); $i++) {
-				// On ajoute tous les utilisateurs sauf l'utilisateur courrant
-				if ($utilisateurs[$i]->getLogin() != $u) {
+				// On ajoute tous les utilisateurs sauf l'utilisateur courant
+				if ($utilisateurs[$i]->getLogin() != $u && (preg_match("/Invité/", $utilisateurs[$i]->getLogin()) == false)) {
 					$utilisateurs_login[$utilisateurs[$i]->getLogin()] = $utilisateurs[$i]->getLogin();
 				}
 			}
@@ -678,7 +703,7 @@ class VotenmasseController extends Controller {
 				    // On fait le lien Requête <-> Formulaire
 				    $form->bind($request);
 			  
-					$groupe->setAdministrateur($u);
+					$groupe->setAdministrateur($utilisateur);
 
 					// On enregistre notre objet $groupe dans la base de données
 					$em = $this->getDoctrine()->getManager();
@@ -731,12 +756,12 @@ class VotenmasseController extends Controller {
 														"Groupe réservé aux inscrits" => "Groupe réservé aux inscrits",
 														"Groupe privé" => "Groupe privé")))
 						 ->getForm();
-
-				if ($request->getMethod() == 'POST') {
+				
+				if ($request->getMethod() == 'POST') {echo "aaa";
 				  // On fait le lien Requête <-> Formulaire
 				  $form->bind($request);
 				  
-				  $groupe->setAdministrateur($u);
+				  $groupe->setAdministrateur($utilisateur);
 
 
 					// On enregistre notre objet $groupe dans la base de données
@@ -764,7 +789,7 @@ class VotenmasseController extends Controller {
 			  // On fait le lien Requête <-> Formulaire
 			  $form->bind($request);
 			  
-			  $groupe->setAdministrateur($u);
+			  $groupe->setAdministrateur($utilisateur);
 
 			  // On vérifie que les valeurs entrées sont correctes
 			  if ($form->isValid()) {
@@ -869,9 +894,7 @@ class VotenmasseController extends Controller {
 					->findAll();
 					
 				foreach ($votes as $cle => $valeur) {
-					$createur = $this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-						->findOneById($valeur->getCreateur());
+					$createur = $valeur->getCreateur();
 						
 					$createurs[$cle] = $createur->getLogin();
 				}
@@ -902,13 +925,12 @@ class VotenmasseController extends Controller {
 					->findBy(array("type" => "Vote public"), array('dateDeCreation' => 'desc'));
 			
 			if ($votes == NULL) {
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
+				'message' => "Aucun vote"));
 			}
 					
 			foreach ($votes as $cle => $valeur) {
-				$createur = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-					->findOneById($valeur->getCreateur());
+				$createur = $valeur->getCreateur();
 					
 				$createurs[$cle] = $createur->getLogin();
 			}
@@ -925,19 +947,22 @@ class VotenmasseController extends Controller {
 			$public = false;
 			$reserve = false;
 			$prive = false;
-		
+			$createurs = NULL;
+			
 			// S'il n'a pas filtré
 			if (($request->request->get('type') == null) && ($request->request->get('etat') == null)) {
 				$votes = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Vote')
 					->findBy(array(), array('dateDeCreation' => 'desc'));
-					
+
 				foreach ($votes as $cle => $valeur) {
-					$createur = $this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-						->findOneById($valeur->getCreateur());
+					$createur = $valeur->getCreateur();
 						
 					$createurs[$cle] = $createur->getLogin();
+				}
+				
+				if ($votes == NULL) {
+					$votes = NULL;
 				}
 				
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -962,11 +987,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -980,11 +1007,13 @@ class VotenmasseController extends Controller {
 					->findBy(array("etat" => true), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -999,9 +1028,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1037,11 +1064,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -1056,9 +1085,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1080,9 +1107,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1104,9 +1129,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1128,9 +1151,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1152,9 +1173,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1176,9 +1195,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1223,11 +1240,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -1242,9 +1261,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1266,9 +1283,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1290,9 +1305,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1314,9 +1327,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1338,9 +1349,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1362,9 +1371,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1385,11 +1392,13 @@ class VotenmasseController extends Controller {
 					->findBy(array("etat" => false), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -1404,9 +1413,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1428,9 +1435,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1452,9 +1457,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1476,9 +1479,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1500,9 +1501,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1524,9 +1523,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1547,11 +1544,13 @@ class VotenmasseController extends Controller {
 					->findBy(array("etat" => true), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:votes.html.twig', array(
@@ -1566,9 +1565,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1590,9 +1587,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1614,9 +1609,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1638,9 +1631,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1662,9 +1653,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1686,9 +1675,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -1711,9 +1698,7 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 		foreach ($votes as $cle => $valeur) {
-			$createur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-				->findOneById($valeur->getCreateur());
+			$createur = $valeur->getCreateur();
 				
 			$createurs[$cle] = $createur->getLogin();
 		}
@@ -1735,13 +1720,12 @@ class VotenmasseController extends Controller {
 					->findBy(array("type" => "Vote public", "etat" => false), array('dateDeCreation' => 'desc'));
 					
 			if ($votes == NULL) {
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:resultats.html.twig', array(
+					'message' => "Aucun vote"));
 			}
 			
 			foreach ($votes as $cle => $valeur) {
-			$createur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-				->findOneById($valeur->getCreateur());
+			$createur = $valeur->getCreateur();
 				
 			$createurs[$cle] = $createur->getLogin();
 			}
@@ -1757,7 +1741,7 @@ class VotenmasseController extends Controller {
 		
 		$votes = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Vote')
-					->findBy(array("createur" => $infos_utilisateur->getId(), "etat" => false), array('dateDeCreation' => 'desc'));
+					->findBy(array("createur" => $infos_utilisateur, "etat" => false), array('dateDeCreation' => 'desc'));
 		
 		$votesAvis = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
@@ -1786,9 +1770,7 @@ class VotenmasseController extends Controller {
 		}
 								
 		foreach ($votes as $cle => $valeur) {
-			$createur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-				->findOneById($valeur->getCreateur());
+			$createur = $valeur->getCreateur();
 				
 			$createurs[$cle] = $createur->getLogin();
 		}
@@ -3216,6 +3198,7 @@ class VotenmasseController extends Controller {
 									  $utilisateur->setPrenom($invite);
 									  $utilisateur->setNom($invite);
 									  $utilisateur->setLogin($invite);
+									  $utilisateur->setAccepte(true);
 									  
 									  $session->set('invite', $invite);
 											
@@ -5269,6 +5252,7 @@ class VotenmasseController extends Controller {
 								  $utilisateur->setPrenom($invite);
 								  $utilisateur->setNom($invite);
 								  $utilisateur->setLogin($invite);
+								  $utilisateur->setAccepte(true);
 								  
 								  $session->set('invite', $invite);
 										
@@ -5990,7 +5974,7 @@ class VotenmasseController extends Controller {
 				if ($admis == false) {
 					$groupes_utilisateur_courant_admin = $this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:Groupe')
-						->findOneByAdministrateur($u);
+						->findOneByAdministrateur($utilisateur);
 						
 					if ($groupes_utilisateur_courant_admin != NULL) {
 						$admis = true;
@@ -8042,13 +8026,12 @@ class VotenmasseController extends Controller {
 					->findBy(array("type" => "Vote public", "groupeAssocie" => NULL), array('dateDeCreation' => 'desc'));
 			
 			if ($votes == NULL) {
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
+					'message' => "Aucun vote à commenter"));
 			}
 					
 			foreach ($votes as $cle => $valeur) {
-				$createur = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-					->findOneById($valeur->getCreateur());
+				$createur = $valeur->getCreateur();
 					
 				$createurs[$cle] = $createur->getLogin();
 			}
@@ -8064,6 +8047,7 @@ class VotenmasseController extends Controller {
 			$public = false;
 			$reserve = false;
 			$prive = false;
+			$createurs = false;
 		
 			if (($request->request->get('type') == null) && ($request->request->get('etat') == null)) {
 				$votes = $this->getDoctrine()
@@ -8071,11 +8055,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 				foreach ($votes as $cle => $valeur) {
-					$createur = $this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-						->findOneById($valeur->getCreateur());
+					$createur = $valeur->getCreateur();
 						
 					$createurs[$cle] = $createur->getLogin();
+				}
+				
+				if ($votes == NULL) {
+					$votes = NULL;
 				}
 				
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8099,11 +8085,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8117,11 +8105,13 @@ class VotenmasseController extends Controller {
 					->findBy(array("etat" => true), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8136,9 +8126,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8173,11 +8161,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8192,9 +8182,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8216,9 +8204,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8240,9 +8226,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8264,9 +8248,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8288,9 +8270,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8312,9 +8292,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8358,11 +8336,13 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8377,9 +8357,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8401,9 +8379,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8425,9 +8401,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8449,9 +8423,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8473,9 +8445,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8497,9 +8467,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8520,11 +8488,13 @@ class VotenmasseController extends Controller {
 					->findBy(array("etat" => false), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8539,9 +8509,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8563,9 +8531,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8587,9 +8553,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8611,9 +8575,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8635,9 +8597,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8659,9 +8619,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8682,11 +8640,13 @@ class VotenmasseController extends Controller {
 					->findBy(array("etat" => true), array('dateDeCreation' => 'desc'));
 					
 					foreach ($votes as $cle => $valeur) {
-						$createur = $this->getDoctrine()
-							->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-							->findOneById($valeur->getCreateur());
+						$createur = $valeur->getCreateur();
 							
 						$createurs[$cle] = $createur->getLogin();
+					}
+					
+					if ($votes == NULL) {
+						$votes = NULL;
 					}
 					
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:forum.html.twig', array(
@@ -8701,9 +8661,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8725,9 +8683,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8749,9 +8705,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8773,9 +8727,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8797,9 +8749,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8821,9 +8771,7 @@ class VotenmasseController extends Controller {
 					
 					if ($votes != NULL) {
 						foreach ($votes as $cle => $valeur) {
-							$createur = $this->getDoctrine()
-								->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-								->findOneById($valeur->getCreateur());
+							$createur = $valeur->getCreateur();
 								
 							$createurs[$cle] = $createur->getLogin();
 						}
@@ -8845,9 +8793,7 @@ class VotenmasseController extends Controller {
 					->findBy(array(), array('dateDeCreation' => 'desc'));
 					
 		foreach ($votes as $cle => $valeur) {
-			$createur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-				->findOneById($valeur->getCreateur());
+			$createur = $valeur->getCreateur();
 				
 			$createurs[$cle] = $createur->getLogin();
 		}
@@ -9038,6 +8984,7 @@ class VotenmasseController extends Controller {
 							  $utilisateur->setPrenom($invite);
 							  $utilisateur->setNom($invite);
 							  $utilisateur->setLogin($invite);
+							  $utilisateur->setAccepte(true);
 							  
 							  $session->set('invite', $invite);
 							  
@@ -9333,6 +9280,14 @@ class VotenmasseController extends Controller {
 		$req_groupes_utilisateurs = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 			->findBy(array('groupe' => $groupe_infos, 'accepte' => true));
+			
+		$utilisateurs_en_attente = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findBy(array('groupe' => $groupe_infos, 'accepte' => false));
+			
+		if ($utilisateurs_en_attente == NULL) {
+			$utilisateurs_en_attente = NULL;
+		}
 		
 		foreach ($req_groupes_utilisateurs as $cle => $valeur) {
 			if (preg_match("/Invité/", $valeur->getUtilisateur()->getLogin()) == false) {
@@ -9351,9 +9306,7 @@ class VotenmasseController extends Controller {
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
 				->findByGroupeAssocie($groupe_infos->getNom());
 				
-			$administrateur_groupe_infos = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-				->findOneByLogin($groupe_infos->getAdministrateur());
+			$administrateur_groupe_infos = $groupe_infos->getAdministrateur();
 		}
 			
 		if ($votes != NULL) {
@@ -9367,27 +9320,46 @@ class VotenmasseController extends Controller {
 			
 		if ($votes_associes != NULL) {
 			foreach ($votes_associes as $cle => $valeur) {
-				$createur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-				->findOneById($valeur->getCreateur());
+				$createur = $valeur->getCreateur();
 
 				$createurs[$cle] = $createur->getLogin();
 			}		
 		}
 		
 		$valide = false;
+		$administrateur = false;
+		$moderateur = false;
+		$membre = false;
+		$en_attente = false;
 		
 		if ($u != NULL) {
 			if (isset($administrateur_groupe_infos)) {
 				if ($administrateur_groupe_infos == $utilisateur) {
 					$valide = true;
+					$administrateur = true;
 				}
 			}
 			
 			if ($valide == false) {
 				if (isset($groupes_utilisateurs)) {
 					foreach ($groupes_utilisateurs as $cle => $valeur) {
+						if ($valeur->getUtilisateur()->getLogin() == $u && $valeur->getModerateur() == true) {
+							$moderateur = true;
+							$valide = true;
+						}
+						else if ($valeur->getUtilisateur()->getLogin() == $u && $valeur->getModerateur() == false) {
+							$membre = true;
+							$valide = true;
+						}
+					}
+				}
+			}
+			
+			if ($valide == false) {
+				if (isset($utilisateurs_en_attente)) {
+					foreach ($utilisateurs_en_attente as $cle => $valeur) {
 						if ($valeur->getUtilisateur()->getLogin() == $u) {
+							$en_attente = true;
 							$valide = true;
 						}
 					}
@@ -9405,6 +9377,7 @@ class VotenmasseController extends Controller {
 					->findOneBy(array('groupe' => $groupe_infos, 'utilisateur' => $invite));
 				
 				if ($req_groupes_utilisateurs_invite != NULL) {
+					$membre = true;
 					$valide = true;
 				}
 			}
@@ -9426,7 +9399,12 @@ class VotenmasseController extends Controller {
 						'votes_associes' => $votes_associes,
 						'administrateur_groupe_infos' => $administrateur_groupe_infos,
 						'vote_createurs' => $createurs,
-						'valide' => $valide));	
+						'valide' => $valide,
+						'administrateur' => $administrateur,
+						'moderateur' => $moderateur,
+						'membre' => $membre,
+						'en_attente' => $en_attente,
+						'demandes' => $utilisateurs_en_attente));	
 		}
 	}
 	
@@ -9446,7 +9424,7 @@ class VotenmasseController extends Controller {
 				->findOneById($groupe_id);	
 				
 			if (isset($groupe_infos)) {				
-				if ($groupe_infos->getAdministrateur() == $u) {
+				if ($groupe_infos->getAdministrateur() == $utilisateur) {
 					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
 				}
 				
@@ -9518,7 +9496,7 @@ class VotenmasseController extends Controller {
 				->findOneById($groupe_id);	
 				
 			if (isset($groupe_infos)) {				
-				if ($groupe_infos->getAdministrateur() == $u) {
+				if ($groupe_infos->getAdministrateur() == $utilisateur) {
 					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
 				}
 				
@@ -9580,6 +9558,7 @@ class VotenmasseController extends Controller {
 			  $utilisateur->setPrenom($invite);
 			  $utilisateur->setNom($invite);
 			  $utilisateur->setLogin($invite);
+			  $utilisateur->setAccepte(true);
 			  
 			  $session->set('invite', $invite);
 			  $i = $invite;
@@ -9647,7 +9626,7 @@ class VotenmasseController extends Controller {
 				->findOneById($groupe_id);	
 				
 			if (isset($groupe_infos)) {				
-				if ($groupe_infos->getAdministrateur() == $u) {
+				if ($groupe_infos->getAdministrateur() == $utilisateur) {
 					$groupe_current_utilisateurs = $this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 						->findByGroupe($groupe_infos);
@@ -9700,5 +9679,17 @@ class VotenmasseController extends Controller {
 		else {
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
+	}
+	
+	public function groupeAjouterUtilisateurAction() {
+		var_dump($request->request->get("groupe_id"));
+		var_dump($request->request->get("utilisateur_id"));
+		die;
+	}
+	
+	public function groupeRefuserUtilisateurAction() {
+		var_dump($request->request->get("groupe_id"));
+		var_dump($request->request->get("utilisateur_id"));
+		die;
 	}
 }

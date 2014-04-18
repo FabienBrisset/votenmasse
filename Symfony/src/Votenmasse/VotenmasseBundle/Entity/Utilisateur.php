@@ -70,6 +70,13 @@ class Utilisateur
      */
     private $mail;
 	
+	/**
+     * @var boolean
+     *
+     * @ORM\Column(name="accepte", type="boolean")
+     */
+    private $accepte;
+	
 	public function __construct() {
 		$this->dateDeNaissance = date_create('1990-01-01');
 	}
@@ -244,5 +251,28 @@ class Utilisateur
     public function getMail()
     {
         return $this->mail;
+    }
+
+    /**
+     * Set accepte
+     *
+     * @param boolean $accepte
+     * @return Utilisateur
+     */
+    public function setAccepte($accepte)
+    {
+        $this->accepte = $accepte;
+
+        return $this;
+    }
+
+    /**
+     * Get accepte
+     *
+     * @return boolean 
+     */
+    public function getAccepte()
+    {
+        return $this->accepte;
     }
 }

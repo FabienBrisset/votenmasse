@@ -43,7 +43,7 @@
 								{% for groupe in groupes %}
 									Nom : {{ groupe.nom }} <br>
 									Description : {{ groupe.description }} <br>
-									Administrateur : {{ groupe.administrateur }} <br>
+									Administrateur : {{ groupe.administrateur.login }} <br>
 									Etat : {{ groupe.etat }} <br><br><br><br>
 								{% endfor %}
 							{% endif %}

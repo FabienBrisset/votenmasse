@@ -94,12 +94,12 @@ label[for=form_moderateur] {
 	margin-bottom: 20px;
 }
 
-.btn-danger {
-	margin-top: 20px;
-}
-
 #form_utilisateurs, label[for=form_utilisateurs] {
 	margin-left: 320px;
+}
+
+#form_validation_groupe {
+	margin-left: 400px;
 }
 
 /* css liste des votes */

@@ -141,10 +141,8 @@ class Vote
     private $etat;
 
     /**
-     * @var integer
-     *
-     * @ORM\Column(name="createur", type="integer")
-     */
+	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
+	  */
     private $createur;
 	
 	public function __construct() {
@@ -556,29 +554,6 @@ class Vote
     }
 
     /**
-     * Set createur
-     *
-     * @param integer $createur
-     * @return Vote
-     */
-    public function setCreateur($createur)
-    {
-        $this->createur = $createur;
-
-        return $this;
-    }
-
-    /**
-     * Get createur
-     *
-     * @return integer 
-     */
-    public function getCreateur()
-    {
-        return $this->createur;
-    }
-
-    /**
      * Set dateDeCreation
      *
      * @param \DateTime $dateDeCreation
@@ -589,5 +564,28 @@ class Vote
         $this->dateDeCreation = $dateDeCreation;
 
         return $this;
+    }
+
+    /**
+     * Set createur
+     *
+     * @param \Votenmasse\VotenmasseBundle\Entity\Utilisateur $createur
+     * @return Vote
+     */
+    public function setCreateur(\Votenmasse\VotenmasseBundle\Entity\Utilisateur $createur = null)
+    {
+        $this->createur = $createur;
+
+        return $this;
+    }
+
+    /**
+     * Get createur
+     *
+     * @return \Votenmasse\VotenmasseBundle\Entity\Utilisateur 
+     */
+    public function getCreateur()
+    {
+        return $this->createur;
     }
 }

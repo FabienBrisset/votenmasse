@@ -20,7 +20,7 @@ class DonnerAvis
 
 	/**
 	  * @ORM\Id
-	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur", cascade={"remove"})
+	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
 	  */
 	private $utilisateur;
 

@@ -29,10 +29,8 @@ class Groupe
     private $nom;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="administrateur", type="string", length=255)
-     */
+     * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
+    */
     private $administrateur;
 
     /**
@@ -81,30 +79,7 @@ class Groupe
     {
         return $this->nom;
     }
-
-    /**
-     * Set administrateur
-     *
-     * @param string $administrateur
-     * @return Groupe
-     */
-    public function setAdministrateur($administrateur)
-    {
-        $this->administrateur = $administrateur;
-
-        return $this;
-    }
-
-    /**
-     * Get administrateur
-     *
-     * @return string 
-     */
-    public function getAdministrateur()
-    {
-        return $this->administrateur;
-    }
-
+	
     /**
      * Set etat
      *
@@ -152,48 +127,25 @@ class Groupe
     }
 
     /**
-     * Set utilisateurs
+     * Set administrateur
      *
-     * @param integer $utilisateurs
+     * @param \Votenmasse\VotenmasseBundle\Entity\Utilisateur $administrateur
      * @return Groupe
      */
-    public function setUtilisateurs($utilisateurs)
+    public function setAdministrateur(\Votenmasse\VotenmasseBundle\Entity\Utilisateur $administrateur = null)
     {
-        $this->utilisateurs = $utilisateurs;
+        $this->administrateur = $administrateur;
 
         return $this;
     }
 
     /**
-     * Get utilisateurs
+     * Get administrateur
      *
-     * @return integer 
+     * @return \Votenmasse\VotenmasseBundle\Entity\Utilisateur 
      */
-    public function getUtilisateurs()
+    public function getAdministrateur()
     {
-        return $this->utilisateurs;
-    }
-
-    /**
-     * Set moderateurs
-     *
-     * @param boolean $moderateurs
-     * @return Groupe
-     */
-    public function setModerateurs($moderateurs)
-    {
-        $this->moderateurs = $moderateurs;
-
-        return $this;
-    }
-
-    /**
-     * Get moderateurs
-     *
-     * @return boolean 
-     */
-    public function getModerateurs()
-    {
-        return $this->moderateurs;
+        return $this->administrateur;
     }
 }

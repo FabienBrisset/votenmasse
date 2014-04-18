@@ -82,7 +82,7 @@
 																<center>{{ groupe.description }} </center>
 															</td>
 															<td>
-																<center>{{ groupe.administrateur }}</center>
+																<center>{{ groupe.administrateur.login }}</center>
 															</td>
 															<td>
 																{% if acceptes[cpt2] is sameas(true) %}
@@ -226,7 +226,7 @@
 																<center>{{ groupe_moderation.description }} </center>
 															</td>
 															<td>
-																<center>{{ groupe_moderation.administrateur }}</center>
+																<center>{{ groupe_moderation.administrateur.login }}</center>
 															</td>
 														</tr>
 													{% endif %}
@@ -337,16 +337,23 @@
 						<td>
 							<div class="well">
 								<b>Dernier vote créé</b><br><br>
-								<center>
-									{% if deja_vote is sameas(false) %}
-										<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
-										</iframe><br><br>
-										<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
-									{% endif %}
-									{% if deja_vote is sameas(true) %}
-										Aucun nouveau vote
-									{% endif %}
-								</center>
+								{% if deja_vote is not null %}
+									<center>
+										{% if deja_vote is sameas(false) %}
+											{% if last_vote is not null %}
+												<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+												</iframe><br><br>
+												<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+											{% endif %}
+											{% if last_vote is null %}
+												Aucun nouveau vote
+											{% endif %}
+										{% endif %}
+										{% if deja_vote is sameas(true) %}
+											Aucun nouveau vote
+										{% endif %}
+									</center>
+								{% endif %}
 							</div>
 						</td>
 					</tr>
@@ -393,7 +400,7 @@
 																<center>{{ groupe.description }} </center>
 															</td>
 															<td>
-																<center>{{ groupe.administrateur }}</center>
+																<center>{{ groupe.administrateur.login }}</center>
 														</tr>
 													{% endif %}
 												{% endfor %}
@@ -417,16 +424,21 @@
 				<td>
 					<div class="well">
 						<b>Dernier vote public créé</b><br><br>
-						<center>
-							{% if deja_vote is sameas(false) %}
-								<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
-								</iframe><br><br>
-								<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
-							{% endif %}
-							{% if deja_vote is sameas(true) %}
-								Aucun nouveau vote
-							{% endif %}
-						</center>
+						{% if last_vote is not null %}
+							<center>
+								{% if deja_vote is sameas(false) %}
+									<iframe name = "iframe" id = "iframe" src="vote/{{ last_vote.id }}" width="425" height="200" frameborder="1" scrolling="no">
+									</iframe><br><br>
+									<button onClick="location.replace('vote/{{ last_vote.id }}');" class="btn btn-primary btn-mini" type="submit">En savoir plus <i class="icon-white icon-ok-sign"></i> </button>
+								{% endif %}
+								{% if deja_vote is sameas(true) %}
+									Aucun nouveau vote
+								{% endif %}
+							</center>
+						{% endif %}
+						{% if last_vote is null %}
+							<center>Pas de nouveau vote</center>
+						{% endif %}
 					</div>
 				</td>
 			{% endif %}

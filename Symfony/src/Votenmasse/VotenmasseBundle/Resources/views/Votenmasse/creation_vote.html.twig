@@ -9,6 +9,12 @@
 	{% if erreur is defined %}
 		<h5 style="color:red">{{ erreur }}</h5>
 	{% endif %}
+	{% if message_erreur_date is defined %}
+		<h5 style="color:red">{{ message_erreur_date }}</h5>
+	{% endif %}
+	{% if message_erreur is defined %}
+		<h5 style="color:red">{{ message_erreur }}</h5>
+	{% endif %}
 
 	<form method="post" class="creation_vote" {{ form_enctype(form) }}>
 		<table class="table">
@@ -29,9 +35,6 @@
 				</td>
 				<td>
 					<div class="well">
-						{% if message_erreur is defined %}
-							<h5 style="color:red">{{ message_erreur }}</h5>
-						{% endif %}
 						{{ form_label(form.type) }}
 						{{ form_errors(form.type) }}
 						{{ form_widget(form.type) }}

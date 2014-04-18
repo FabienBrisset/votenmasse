@@ -22,7 +22,8 @@ class UtilisateurVote
 
 	/**
 	  * @ORM\Id
-	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
+	  * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur", cascade={"remove"})
+	  * @ORM\JoinColumn(name="utilisateur_id", referencedColumnName="id", onDelete="CASCADE")
 	  */
 	private $utilisateur;
 

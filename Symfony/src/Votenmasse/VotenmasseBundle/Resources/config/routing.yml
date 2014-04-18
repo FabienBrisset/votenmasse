@@ -48,7 +48,7 @@ votenmasse_votenmasse_forum:
 
 votenmasse_votenmasse_commentaire:
    pattern: /commentaire/{vote}/{supp}
-   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, vote: null, supp: null }
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaire, vote: null, supp: false }
 
 votenmasse_votenmasse_groupes:
    pattern: /liste/groupes
@@ -69,3 +69,7 @@ votenmasse_votenmasse_quitter_groupe:
 votenmasse_votenmasse_supprimer_groupe:
     pattern: /groupe/supprimer/{groupe_id}
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:supprimerGroupe, groupe_id: null }
+
+votenmasse_votenmasse_supprimer_utilisateur:
+    pattern: /utilisateur/supprimer
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:supprimerUtilisateur }

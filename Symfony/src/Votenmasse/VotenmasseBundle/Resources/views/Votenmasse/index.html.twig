@@ -320,6 +320,17 @@
 										Aucun vote
 									{% endif %}
 								  </div>
+								  <h3>Désinscription</h3>
+								   <div>
+										<center>
+											<form action="{{ path('votenmasse_votenmasse_supprimer_utilisateur') }}" method="post">
+												Saisissez votre mot de passe : 
+												<input type = "password" name = "mot_de_passe" /><br><br>
+												
+												<button class="btn btn-primary btn-mini" type="submit">Se désinscrire <i class="icon-white icon-ok-sign"></i></button>
+											</form>
+										</center>
+								  </div>
 								</div>
 							</div>
 						</td>

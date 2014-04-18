@@ -121,6 +121,10 @@ class VotenmasseController extends Controller {
 				}
 			}
 			
+			if (!isset($groupes)) {
+				$groupes = NULL;
+			}
+			
 			if (is_array($groupes[0]) && $groupes[0] != NULL) {
 				foreach ($groupes as $cle => $valeur) {
 					foreach ($valeur as $key => $value) {
@@ -8899,7 +8903,7 @@ class VotenmasseController extends Controller {
 						
 						$listeVote=$this->getDoctrine()
 							->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
-							->findBy(array('vote'=>$infos_vote));
+							->findBy(array('vote'=>$infos_vote), array('identifier' => 'desc'));
 						$tableau=array();
 						
 						if($listeVote != NULL) {
@@ -8937,14 +8941,10 @@ class VotenmasseController extends Controller {
 					return $this->redirect($this->generateUrl('votenmasse_votenmasse_forum'));
 				}
 			}
-			
-			//if (// Ici on testera que l'utilisateur fait bien parti du groupe du vote ) {
-			
-			//}
 
 			$listeVote=$this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
-						->findBy(array('vote'=>$infos_vote));
+						->findBy(array('vote'=>$infos_vote), array('identifier' => 'desc'));
 			$tableau=array();
 			
 			if($listeVote != NULL) {
@@ -9052,6 +9052,14 @@ class VotenmasseController extends Controller {
 					if($utilisateur_id!=NULL) {
 						$commentaireUti->setUtilisateur($utilisateur_id);
 					}
+					
+					$req_max_id = $em->createQuery(
+						'SELECT MAX(vcu.identifier) AS max_identifier
+						FROM VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur vcu');
+
+				    $last_commentaire = (int)$req_max_id->getResult()[0]['max_identifier'];
+					
+					$commentaireUti->setIdentifier($last_commentaire + 1);
 						
 					
 					// On enregistre notre objet $commentaireUtilisateur dans la base de données
@@ -9061,7 +9069,7 @@ class VotenmasseController extends Controller {
 					
 					$listeVote=$this->getDoctrine()
 								->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
-								->findBy(array('vote'=>$infos_vote));
+								->findBy(array('vote'=>$infos_vote), array('identifier' => 'desc'));
 								
 					$tableau=array();
 					
@@ -9087,10 +9095,6 @@ class VotenmasseController extends Controller {
 					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 				}
 			}
-			
-			//if (// Ici on testera que l'utilisateur fait bien parti du groupe du vote ) {
-			
-			//}
 				
 			if($infos_vote!=NULL){
 				$commentaireUti->setVote($infos_vote);
@@ -9103,6 +9107,14 @@ class VotenmasseController extends Controller {
 			if($utilisateur_id!=NULL) {
 				$commentaireUti->setUtilisateur($utilisateur_id);
 			}
+			
+			$req_max_id = $em->createQuery(
+				'SELECT MAX(vcu.identifier) AS max_identifier
+				FROM VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur vcu');
+
+			$last_commentaire = (int)$req_max_id->getResult()[0]['max_identifier'];
+			
+			$commentaireUti->setIdentifier($last_commentaire + 1);
 				
 			
 			// On enregistre notre objet $commentaireUtilisateur dans la base de données
@@ -9112,7 +9124,7 @@ class VotenmasseController extends Controller {
 			
 			$listeVote=$this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
-						->findBy(array('vote'=>$infos_vote));
+						->findBy(array('vote'=>$infos_vote), array('identifier' => 'desc'));
 						
 			$tableau=array();
 			
@@ -9667,5 +9679,26 @@ class VotenmasseController extends Controller {
 		}
 	}
 	
+	public function supprimerUtilisateurAction() {
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
 	
+		$utilisateur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findOneByLogin($u);
+				
+		$pass = md5($request->request->get("mot_de_passe"));
+				
+		if ($utilisateur->getMotDePasse() == $pass) {		
+			$em = $this->getDoctrine()->getManager();		
+			$em->remove($utilisateur);
+			$em->flush();
+			
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_deconnexion'));
+		}
+		else {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+	}
 }

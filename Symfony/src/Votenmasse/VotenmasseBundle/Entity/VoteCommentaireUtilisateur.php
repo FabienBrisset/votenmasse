@@ -12,7 +12,6 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class VoteCommentaireUtilisateur
 {
-    
     /**
      * @ORM\Id
      * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Vote")
@@ -25,7 +24,8 @@ class VoteCommentaireUtilisateur
     private $commentaire;
     /**
      * @ORM\Id
-     * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur")
+     * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Utilisateur", cascade={"remove"})
+	 * @ORM\JoinColumn(name="utilisateur_id", referencedColumnName="id", onDelete="CASCADE")
      */
     private $utilisateur;
 
@@ -35,6 +35,13 @@ class VoteCommentaireUtilisateur
      * @ORM\Column(name="dateCreation", type="datetime")
      */
     private $dateCreation;
+	
+	/**
+	 * @var int
+	 *
+	 * @ORM\Column(name="identifier", type="integer")
+	 */
+	private $identifier;
 	
 	public function __construct() {
 		$this->dateCreation = date_create(date('Y-m-d'));
@@ -100,5 +107,28 @@ class VoteCommentaireUtilisateur
     public function getDateCreation()
     {
         return $this->dateCreation;
+    }
+
+    /**
+     * Set identifier
+     *
+     * @param integer $identifier
+     * @return VoteCommentaireUtilisateur
+     */
+    public function setIdentifier($identifier)
+    {
+        $this->identifier = $identifier;
+
+        return $this;
+    }
+
+    /**
+     * Get identifier
+     *
+     * @return integer 
+     */
+    public function getIdentifier()
+    {
+        return $this->identifier;
     }
 }

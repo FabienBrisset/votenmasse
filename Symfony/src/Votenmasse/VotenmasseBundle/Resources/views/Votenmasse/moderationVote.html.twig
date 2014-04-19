@@ -1,0 +1,167 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Vote - {{ vote_id }}
+{% endblock %}
+
+{% block votenmasse_body %}
+	<table class="table">
+		{% if vote is defined %}
+			<legend><b>Vote {{ vote_id }} : {{ vote.nom }}</b></legend>
+		{% endif %}
+		{% if vote is not defined %}
+			<legend><b>Le vote {{ vote_id }} n'existe pas</b></legend>
+		{% endif %}
+		<tr>
+			<td>
+				<div class="well">
+					<div id="accordion">
+						<h3>Gérer les modérateurs</h3>
+						<div>
+							<table align = "center">
+								<tr>
+									<td>
+										<center><b>Nom</b></center>
+									</td>
+									<td>
+										<center><b>Prénom</b></center>
+									</td>
+									<td>
+										<center><b>Login</b></center>
+									</td>
+									<td>
+										<center><b>Statut</b></center>
+									</td>
+									{% if add_moderators is defined %}
+										{% if add_moderators is sameas(true) %}
+											<td>
+												<center><b>Privilégier</b></center>
+											</td>
+										{% endif %}
+									{% endif %}
+								</tr>
+								{% for moderateur in moderateurs %}
+									<tr>
+										<td>
+											<center>{{ moderateur.nom }}</center>
+										</td>
+										<td>
+											<center>{{ moderateur.prenom }} </center>
+										</td>
+										<td>
+											<center>{{ moderateur.login }}</center>
+										</td>
+										<td>
+											<center>			
+												Modérateur
+											</center>
+										</td>
+										{% if add_moderators is defined %}
+											{% if add_moderators is sameas(true) %}
+												<td>
+													<center>
+														<form action="{{ path('votenmasse_votenmasse_vote_supprimer_moderateur') }}" method="post">
+															<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
+															<input type = "hidden" name = "membre_id" value = {{ moderateur.id }} />
+															<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+														</form>
+													</center>
+												</td>
+											{% endif %}					
+										{% endif %}
+									</tr>
+								{% endfor %}
+								{% for utilisateur in liste_utilisateurs %}
+									<tr>
+										<td>
+											<center>{{ utilisateur.nom }}</center>
+										</td>
+										<td>
+											<center>{{ utilisateur.prenom }} </center>
+										</td>
+										<td>
+											<center>{{ utilisateur.login }}</center>
+										</td>
+										<td>
+											<center>			
+												Membre
+											</center>
+										</td>
+										{% if add_moderators is defined %}
+											{% if add_moderators is sameas(true) %}
+												<td>
+													<center>
+														<form action="{{ path('votenmasse_votenmasse_vote_ajouter_moderateur') }}" method="post">
+															<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
+															<input type = "hidden" name = "membre_id" value = {{ utilisateur.id }} />
+															<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+														</form>
+													</center>
+												</td>
+											{% endif %}					
+										{% endif %}
+									</tr>
+								{% endfor %}
+							</table>
+						</div>
+						<h3>Gérer les commentaires</h3>
+						<div>
+							{% if liste_commentaires_associes is not null %}
+								<table align = "center">
+									<tr>
+										<td>
+											<center><b>Login</b></center>
+										</td>
+										<td>
+											<center><b>Commentaire</b></center>
+										</td>
+										<td>
+											<center><b>Date de création</b></center>
+										</td>
+										<td>
+											<center><b>Supprimer</b></center>
+										</td>
+									</tr>
+									{% for commentaire in liste_commentaires_associes %}
+										<tr>
+											<td>
+												<center>{{ commentaire.utilisateur.login }}</center>
+											</td>
+											<td>
+												<center>{{ commentaire.commentaire.texteCommentaire }} </center>
+											</td>
+											<td>
+												<center>{{ commentaire.dateCreation|date("d/m/y") }}</center>
+											</td>
+											<td>
+												<center>
+													<form action="{{ path('votenmasse_votenmasse_vote_supprimer_commentaire') }}" method="post">
+														<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
+														<input type = "hidden" name = "commentaire_id" value = {{ commentaire.identifier }} />
+														<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+													</form>
+												</center>
+											</td>
+										</tr>
+									{% endfor %}
+								</table>
+							{% else %}
+								Aucun commentaire n'est associé au vote {{ vote.nom }}
+							{% endif %}
+						</div>
+					</div>
+				</div>
+			</td>
+		</tr>
+	</table>
+	{% if delete is defined %}	
+		{% if delete is sameas(true) %}	
+			<center>
+				<form action="{{ path('votenmasse_votenmasse_supprimer_vote')}}" method="post">
+					<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
+					<button class="btn btn-primary btn-mini" type="submit">Supprimer le vote <i class="icon-white icon-ok-sign"></i> </button>
+				</form>
+			</center>
+		{% endif %}
+	{% endif %}
+{% endblock %}

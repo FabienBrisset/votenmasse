@@ -270,7 +270,7 @@
 												</tr>
 												{% set cpt = 0 %}
 												{% for vote_moderation in votes_moderation %}
-													<tr class = "liste_votes" onclick="document.location.href='vote/{{ vote_moderation.id }}'">
+													<tr class = "liste_votes" onclick="document.location.href='vote/moderer/{{ vote_moderation.id }}'">
 															<td>
 																{% if vote_moderation.type is sameas('Vote public') %}
 																	<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>

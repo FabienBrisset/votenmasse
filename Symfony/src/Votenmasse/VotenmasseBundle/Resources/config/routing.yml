@@ -97,3 +97,23 @@ votenmasse_votenmasse_groupe_donner_privilege:
 votenmasse_votenmasse_groupe_supprimer_privilege:
    pattern: /groupe/action/supprimer/privilege
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupeSupprimerPrivilege }
+
+votenmasse_votenmasse_vote_moderer:
+   pattern: /vote/moderer/{vote_id}
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:voteModerer, vote_id: null }
+
+votenmasse_votenmasse_supprimer_vote:
+   pattern: /vote/supprimer/action
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:voteSupprimer }
+
+votenmasse_votenmasse_vote_ajouter_moderateur:
+   pattern: /vote/ajouter/moderateur
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:voteAjouterModerateur }
+
+votenmasse_votenmasse_vote_supprimer_moderateur:
+   pattern: /vote/supprimer/moderateur
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:voteSupprimerModerateur }
+
+votenmasse_votenmasse_vote_supprimer_commentaire:
+   pattern: /vote/supprimer/commentaire
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaireSupprimer }

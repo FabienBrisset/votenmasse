@@ -9669,8 +9669,99 @@ class VotenmasseController extends Controller {
 				
 		$pass = md5($request->request->get("mot_de_passe"));
 				
-		if ($utilisateur->getMotDePasse() == $pass) {		
-			$em = $this->getDoctrine()->getManager();		
+		if ($utilisateur->getMotDePasse() == $pass) {	
+			$em = $this->getDoctrine()->getManager();	
+			// Modo de vote
+			$utilisateur_vote = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+				->findByUtilisateur($utilisateur);
+			
+			if ($utilisateur_vote != NULL) {
+				foreach ($utilisateur_vote as $cle => $valeur) {
+					$em->remove($valeur);
+					$em->flush();
+				}
+			}
+			
+			// Membre ou modo d'un groupe
+			$groupe_utilisateur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+				->findByUtilisateur($utilisateur);
+			
+			if ($groupe_utilisateur != NULL) {
+				foreach ($groupe_utilisateur as $cle => $valeur) {
+					$em->remove($valeur);
+					$em->flush();
+				}
+			}
+			
+			// Avis donnés
+			$avis_donnes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+				->findByUtilisateur($utilisateur);
+			
+			if ($avis_donnes != NULL) {
+				foreach ($avis_donnes as $cle => $valeur) {
+					$em->remove($valeur);
+					$em->flush();
+				}
+			}
+			
+			// Commentaires donnés
+			$commentaires_donnes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findByUtilisateur($utilisateur);
+			
+			if ($commentaires_donnes != NULL) {
+				foreach ($commentaires_donnes as $cle => $valeur) {
+					$commentaires_a_supprimer = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+						->findById($valeur->getCommentaire());
+				
+					$em->remove($valeur);
+					$em->flush();
+				}
+				
+				foreach ($commentaires_a_supprimer as $cle => $valeur) {
+					$em->remove($valeur);
+					$em->flush();
+				}
+			}
+			
+			// Groupes créés
+			$groupes_crees = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findByAdministrateur($utilisateur);
+			
+			if ($groupes_crees != NULL) {
+				foreach ($groupes_crees as $cle => $valeur) {
+					$groupes_utilisateurs_autres = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+						->findByGroupe($valeur);
+						
+					foreach ($groupes_utilisateurs_autres as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				
+					$em->remove($valeur);
+					$em->flush();
+				}
+			}
+			
+			// Votes créés
+			$votes_crees = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findByCreateur($utilisateur);
+			
+			if ($votes_crees != NULL) {
+				foreach ($votes_crees as $cle => $valeur) {
+					$em->remove($valeur);
+					$em->flush();
+				}
+			}
+			
+			// L'utilisateur lui-même
 			$em->remove($utilisateur);
 			$em->flush();
 			

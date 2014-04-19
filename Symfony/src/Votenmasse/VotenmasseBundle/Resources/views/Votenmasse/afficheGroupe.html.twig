@@ -278,8 +278,8 @@
 			{% endif %}
 			{% if valide is sameas(false) %}
 				<form action="{{ path('votenmasse_votenmasse_rejoindre_groupe', { 'groupe_id': groupe_id }) }}" method="post">
+					Justifiez votre demande : <br>
 					<textarea name = "message_rejoindre_groupe" rows="3" cols="20">
-						Justifiez votre demande
 					</textarea><br><br>
 					<button class="btn btn-primary btn-mini" type="submit">Effectuer une demande pour rejoindre le groupe <i class="icon-white icon-ok-sign"></i> </button>
 				</form>

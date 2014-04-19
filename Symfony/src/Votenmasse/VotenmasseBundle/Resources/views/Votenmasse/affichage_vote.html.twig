@@ -19,7 +19,7 @@
 							<center>
 								<h4>Description :<br></h4>{{ vote_texte }}<br><br>
 								{% if groupe_associe is not null %}
-									<h5 align = "center">{{ groupe_associe }}</h5><br>
+									<h5 align = "center">{{ groupe_associe.nom }}</h5><br>
 								{% endif %}
 								<font color = "red">Classez par ordre préférentiel les différentes propositions</font><br><br>
 							</center>
@@ -157,7 +157,7 @@
 						<center>
 							<h4>Description :<br></h4>{{ vote_texte }}<br><br>
 							{% if groupe_associe is not null %}
-								<h5 align = "center">{{ groupe_associe }}</h5><br>
+								<h5 align = "center">{{ groupe_associe.nom }}</h5><br>
 							{% endif %}
 							<font color = "red">Résultat par ordre préférentiel des différentes propositions</font><br><br>
 						</center>

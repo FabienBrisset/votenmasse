@@ -177,7 +177,7 @@ class VotenmasseController extends Controller {
 			
 			$last_vote = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
-				->findOneBy(array(), array('id' => 'desc'));
+				->findOneBy(array('groupeAssocie' => NULL), array('id' => 'desc'));
 				
 			$last_groupes = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
@@ -304,7 +304,7 @@ class VotenmasseController extends Controller {
 		
 		$last_vote = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
-				->findOneBy(array('type' => 'Vote public'), array('id' => 'desc'));
+				->findOneBy(array('type' => 'Vote public', 'groupeAssocie' => NULL), array('id' => 'desc'));
 		
 		$invite = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
@@ -515,7 +515,8 @@ class VotenmasseController extends Controller {
 					 ->add('groupeAssocie', 'choice', array( 
 													'choices' => $groupes,
 													'required' => false,
-													'label' => 'Groupe associé'))
+													'label' => 'Groupe associé',
+													'mapped' => false))
 					 ->add('choix1', 'text')
 					 ->add('choix2', 'text')
 					 ->add('choix3', 'text', array( 
@@ -556,7 +557,7 @@ class VotenmasseController extends Controller {
 		  if($request->request->get("form")['groupeAssocie'] != NULL) {
 			$groupeAssocie = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
-				->findOneByNom($request->request->get("form")['groupeAssocie']);
+				->findOneByNom($request->request->get("form")['groupeAssocie']); 
 				
 			$date_du_jour = date_create(date('Y-m-d'));
 			$date_fin = date_create($request->request->get("form")['dateDeFin']['month'].'/'.$request->request->get("form")['dateDeFin']['day'].'/'.$request->request->get("form")['dateDeFin']['year']);
@@ -565,7 +566,7 @@ class VotenmasseController extends Controller {
 					'form' => $form->createView(),
 					'message_erreur' => "La date de fin doit être supérieure à la date du jour",
 					'utilisateur' => $u));
-			}	
+			}	;
 			
 			// On regarde si le groupe existe
 			if($groupeAssocie != NULL) {
@@ -589,6 +590,9 @@ class VotenmasseController extends Controller {
 					'form' => $form->createView(),
 					'message_erreur' => "Un vote public doit être associé à un groupe public",
 					'utilisateur' => $u));
+				}
+				else {
+					$vote->setGroupeAssocie($groupeAssocie);
 				}
 			}
 			else {
@@ -1758,13 +1762,22 @@ class VotenmasseController extends Controller {
 				$cpt++;
 			}
 		}
-		
+
 		if (isset($votesParVotesAvis)) {
 			$cpt = sizeof($votes);
 			foreach ($votesParVotesAvis as $cle => $valeur) {
 				foreach ($valeur as $key => $value) {
-					$votes[$cpt] = $value;
-					$cpt++;
+					$existe_deja = false;
+					for ($i = ($cpt-1); $i >= 0; $i--) {
+						if ($votes[$i] == $value) {
+							$existe_deja = true;
+						}
+					}
+					
+					if ($existe_deja == false) {
+						$votes[$cpt] = $value;
+						$cpt++;
+					}
 				}
 			}
 		}
@@ -3902,7 +3915,7 @@ class VotenmasseController extends Controller {
 						}
 					}
 					else {
-						return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $infos_vote->getId())));
+						return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $infos_vote->getGroupeAssocie()->getId())));
 					}
 				}
 				else {
@@ -5982,7 +5995,7 @@ class VotenmasseController extends Controller {
 				}
 				
 				if ($admis == false) {
-					return $this->redirect($this->generateUrl('votenmasse_votenmasse_votes'));
+					return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $infos_vote->getGroupeAssocie()->getId())));
 				}
 			}
 			
@@ -9304,7 +9317,7 @@ class VotenmasseController extends Controller {
 			
 			$votes = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Vote')
-				->findByGroupeAssocie($groupe_infos->getNom());
+				->findByGroupeAssocie($groupe_infos);
 				
 			$administrateur_groupe_infos = $groupe_infos->getAdministrateur();
 		}
@@ -9382,7 +9395,6 @@ class VotenmasseController extends Controller {
 				}
 			}
 		}
-		
 		
 		if ($groupe_infos == NULL) {
 			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
@@ -9515,7 +9527,7 @@ class VotenmasseController extends Controller {
 				$demande->setModerateur(false);
 				$demande->setAccepte(false);
 				
-				if ($request->request->get('message_rejoindre_groupe') != NULL) {
+				if ($request->request->get('message_rejoindre_groupe') != "    ") {
 					$demande->setMessage($request->request->get('message_rejoindre_groupe'));
 				}
 				
@@ -9605,53 +9617,6 @@ class VotenmasseController extends Controller {
 			$em->flush();
 			
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
-		}
-		else {
-			return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
-		}
-	}
-	
-	public function supprimerGroupeAction($groupe_id = null) {
-		$request = $this->get('request');
-		$session = $request->getSession();		
-		$u = $session->get('utilisateur');
-		
-		if ($u != NULL) {
-			$utilisateur = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-					->findOneByLogin($u);
-			
-			$groupe_infos = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Groupe')
-				->findOneById($groupe_id);	
-				
-			if (isset($groupe_infos)) {				
-				if ($groupe_infos->getAdministrateur() == $utilisateur) {
-					$groupe_current_utilisateurs = $this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
-						->findByGroupe($groupe_infos);
-					
-					$em = $this->getDoctrine()->getManager();
-					
-					if ($groupe_current_utilisateurs != NULL) {
-						foreach ($groupe_current_utilisateurs as $cle => $valeur) {
-							$em->remove($valeur);
-							$em->flush();
-						}
-					}
-					
-					$em->remove($groupe_infos);
-					$em->flush();
-					
-					return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
-				}
-				else {
-					return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
-				}	
-			}
-			else {
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
-			}
 		}
 		else {
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_groupes'));
@@ -9772,15 +9737,175 @@ class VotenmasseController extends Controller {
 		}
 	}
 	
+	public function supprimerGroupeAction($groupe_id = NULL) {
+		$request = $this->get('request');
+				
+		$em = $this->getDoctrine()->getManager();	
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+		
+		// Membres et modos du groupe
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findByGroupe($groupe);
+		
+		if ($groupe_utilisateur != NULL) {
+			foreach ($groupe_utilisateur as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Votes associés
+		$votes_associes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findByGroupeAssocie($groupe);
+		
+		var_dump($votes_associes);die;
+		
+		if ($votes_associes != NULL) {
+			foreach ($votes_associes as $cle => $valeur) {
+				// Modo de vote
+				$utilisateur_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+					->findByVote($valeur);
+					
+				if ($utilisateur_vote != NULL) {
+					foreach ($utilisateur_vote as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Avis donnés
+				$avis_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+					->findByVote($valeur);
+				
+				if ($avis_donnes != NULL) {
+					foreach ($avis_donnes as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Commentaires donnés
+				$commentaires_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findByVote($valeur);
+				
+				if ($commentaires_donnes != NULL) {
+					foreach ($commentaires_donnes as $key => $value) {
+						$commentaires_a_supprimer = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+							->findById($value->getCommentaire());
+					
+						$em->remove($value);
+						$em->flush();
+					}
+					
+					foreach ($commentaires_a_supprimer as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+			
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Le groupe lui-même
+		$em->remove($groupe);
+		$em->flush();
+		
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+	}
+	
 	public function groupeAjouterUtilisateurAction() {
-		var_dump($request->request->get("groupe_id"));
-		var_dump($request->request->get("utilisateur_id"));
-		die;
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+			
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneById($request->request->get("utilisateur_id"));
+		
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findOneBy(array('utilisateur' => $utilisateur, 'groupe' => $groupe));
+			
+		$groupe_utilisateur->setAccepte(true);
+		
+		$em = $this->getDoctrine()->getManager();
+		$em->persist($groupe_utilisateur);
+		$em->flush();
+		
+		$groupe_id = (int)$groupe_id;
+		
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
 	}
 	
 	public function groupeRefuserUtilisateurAction() {
-		var_dump($request->request->get("groupe_id"));
-		var_dump($request->request->get("utilisateur_id"));
-		die;
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+			
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneById($request->request->get("utilisateur_id"));
+		
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findOneBy(array('utilisateur' => $utilisateur, 'groupe' => $groupe));
+		
+		$em = $this->getDoctrine()->getManager();
+		$em->remove($groupe_utilisateur);
+		$em->flush();
+		
+		$groupe_id = (int)$groupe_id;
+		
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
+	}
+	
+	public function supprimerVoteAction() {
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		$vote_id = $request->request->get("vote_id");
+		
+		$vote = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findOneById($vote_id);
+			
+		var_dump($vote);die;
+		/*	
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneById($request->request->get("utilisateur_id"));
+		
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findOneBy(array('utilisateur' => $utilisateur, 'groupe' => $groupe));
+		
+		$em = $this->getDoctrine()->getManager();
+		$em->remove($groupe_utilisateur);
+		$em->flush();
+		*/
+		
+		$groupe_id = (int)$groupe_id;
+		$vote_id = (int)$vote_id;
+		
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
 	}
 }

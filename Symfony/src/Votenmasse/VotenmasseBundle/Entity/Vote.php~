@@ -127,10 +127,8 @@ class Vote
     private $type;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="groupe_associe", type="string", length=255, nullable=true)
-     */
+	   * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Groupe")
+	   */
     private $groupeAssocie;
 
     /**
@@ -439,29 +437,6 @@ class Vote
     }
 
     /**
-     * Set dateCreation
-     *
-     * @param \DateTime $dateCreation
-     * @return Vote
-     */
-    public function setDeDateCreation($dateDeCreation)
-    {
-        $this->dateDeCreation = $dateDeCreation;
-
-        return $this;
-    }
-
-    /**
-     * Get dateCreation
-     *
-     * @return \DateTime 
-     */
-    public function getDateDeCreation()
-    {
-        return $this->dateDeCreation;
-    }
-
-    /**
      * Set dateFin
      *
      * @param \DateTime $dateFin
@@ -508,29 +483,6 @@ class Vote
     }
 
     /**
-     * Set groupeAssocie
-     *
-     * @param string $groupeAssocie
-     * @return Vote
-     */
-    public function setGroupeAssocie($groupeAssocie)
-    {
-        $this->groupeAssocie = $groupeAssocie;
-
-        return $this;
-    }
-
-    /**
-     * Get groupeAssocie
-     *
-     * @return string 
-     */
-    public function getGroupeAssocie()
-    {
-        return $this->groupeAssocie;
-    }
-
-    /**
      * Set etat
      *
      * @param boolean $etat
@@ -551,41 +503,5 @@ class Vote
     public function getEtat()
     {
         return $this->etat;
-    }
-
-    /**
-     * Set dateDeCreation
-     *
-     * @param \DateTime $dateDeCreation
-     * @return Vote
-     */
-    public function setDateDeCreation($dateDeCreation)
-    {
-        $this->dateDeCreation = $dateDeCreation;
-
-        return $this;
-    }
-
-    /**
-     * Set createur
-     *
-     * @param \Votenmasse\VotenmasseBundle\Entity\Utilisateur $createur
-     * @return Vote
-     */
-    public function setCreateur(\Votenmasse\VotenmasseBundle\Entity\Utilisateur $createur = null)
-    {
-        $this->createur = $createur;
-
-        return $this;
-    }
-
-    /**
-     * Get createur
-     *
-     * @return \Votenmasse\VotenmasseBundle\Entity\Utilisateur 
-     */
-    public function getCreateur()
-    {
-        return $this->createur;
     }
 }

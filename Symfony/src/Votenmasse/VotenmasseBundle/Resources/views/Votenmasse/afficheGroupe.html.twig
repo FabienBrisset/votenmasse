@@ -112,6 +112,9 @@
 													<td>
 														<center><b>Créateur</b></center>
 													</td>
+													<td>
+														<center><b>Supprimer</b></center>
+													</td>
 												</tr>
 												{% set cpt = 0 %}
 												{% for vote in votes_associes %}
@@ -146,7 +149,7 @@
 														</td>
 														<td>
 															{% if vote.groupeAssocie is not null %}
-																<center>{{ vote.groupeAssocie }}</center>
+																<center>{{ vote.groupeAssocie.nom }}</center>
 															{% endif %}
 															{% if vote.groupeAssocie is null %}
 																<center>Aucun</center>
@@ -157,6 +160,15 @@
 														</td>
 														<td>
 															<center>{{ vote_createurs[cpt] }}</center>
+														</td>
+														<td>
+															<center>
+																<form action="{{ path('votenmasse_votenmasse_vote_supprimer') }}" method="post">
+																	<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																	<input type = "hidden" name = "vote_id" value = {{ vote.id }} />
+																	<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+																</form>
+															</center>
 														</td>
 														{% set cpt = cpt + 1 %}
 													</tr>
@@ -211,12 +223,7 @@
 																</td>
 																<td>
 																	<center>
-																		{% if demande.message is null %}
-																			Aucun message
-																		{% endif %}
-																		{% if demande.message is not null %}
-																				{{ demande.message }}
-																		{% endif %}
+																		{{ demande.message }}
 																	</center>
 																</td>
 																<td>

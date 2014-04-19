@@ -15,7 +15,6 @@
 	{% endif %}
 	<table class="table">
 		<tr>
-		
 			{% if utilisateur is defined %}
 				{% if utilisateur is not null %}
 					<tr>
@@ -159,7 +158,7 @@
 															</td>
 															<td>
 																{% if vote.groupeAssocie is not null %}
-																	<center>{{ vote.groupeAssocie }}</center>
+																	<center>{{ vote.groupeAssocie.nom }}</center>
 																{% endif %}
 																{% if vote.groupeAssocie is null %}
 																	<center>Aucun</center>
@@ -294,7 +293,7 @@
 															</td>
 															<td>
 																{% if vote_moderation.groupeAssocie is not null %}
-																	<center>{{ vote_moderation.groupeAssocie }}</center>
+																	<center>{{ vote_moderation.groupeAssocie.nom }}</center>
 																{% endif %}
 																{% if vote_moderation.groupeAssocie is null %}
 																	<center>Aucun</center>
@@ -336,7 +335,7 @@
 						</td>
 						<td>
 							<div class="well">
-								<b>Dernier vote créé</b><br><br>
+								<b>Dernier vote créé non-associé à un groupe</b><br><br>
 								{% if deja_vote is not null %}
 									<center>
 										{% if deja_vote is sameas(false) %}
@@ -423,7 +422,7 @@
 			{% if invite is defined %}
 				<td>
 					<div class="well">
-						<b>Dernier vote public créé</b><br><br>
+						<b>Dernier vote public créé non-associé à un groupe</b><br><br>
 						{% if last_vote is not null %}
 							<center>
 								{% if deja_vote is sameas(false) %}

@@ -95,7 +95,7 @@
 									Date de fin : {{ vote.dateDeFin|date("d/m/y") }} <br>
 									Type : {{ vote.type }} <br>
 									{% if vote.groupeAssocie is not null %}
-									Groupe associé : {{ vote.groupeAssocie }} <br>
+									Groupe associé : {{ vote.groupeAssocie.nom }} <br>
 									{% endif %}
 									Etat : {% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %} <br>
 									Créateur : {{ vote_createurs[cpt] }} <br><br><br>

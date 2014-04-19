@@ -127,10 +127,8 @@ class Vote
     private $type;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="groupe_associe", type="string", length=255, nullable=true)
-     */
+	   * @ORM\ManyToOne(targetEntity="Votenmasse\VotenmasseBundle\Entity\Groupe")
+	   */
     private $groupeAssocie;
 
     /**
@@ -439,29 +437,6 @@ class Vote
     }
 
     /**
-     * Set dateCreation
-     *
-     * @param \DateTime $dateCreation
-     * @return Vote
-     */
-    public function setDeDateCreation($dateDeCreation)
-    {
-        $this->dateDeCreation = $dateDeCreation;
-
-        return $this;
-    }
-
-    /**
-     * Get dateCreation
-     *
-     * @return \DateTime 
-     */
-    public function getDateDeCreation()
-    {
-        return $this->dateDeCreation;
-    }
-
-    /**
      * Set dateFin
      *
      * @param \DateTime $dateFin
@@ -508,29 +483,6 @@ class Vote
     }
 
     /**
-     * Set groupeAssocie
-     *
-     * @param string $groupeAssocie
-     * @return Vote
-     */
-    public function setGroupeAssocie($groupeAssocie)
-    {
-        $this->groupeAssocie = $groupeAssocie;
-
-        return $this;
-    }
-
-    /**
-     * Get groupeAssocie
-     *
-     * @return string 
-     */
-    public function getGroupeAssocie()
-    {
-        return $this->groupeAssocie;
-    }
-
-    /**
      * Set etat
      *
      * @param boolean $etat
@@ -564,6 +516,39 @@ class Vote
         $this->dateDeCreation = $dateDeCreation;
 
         return $this;
+    }
+
+    /**
+     * Get dateDeCreation
+     *
+     * @return \DateTime 
+     */
+    public function getDateDeCreation()
+    {
+        return $this->dateDeCreation;
+    }
+
+    /**
+     * Set groupeAssocie
+     *
+     * @param \Votenmasse\VotenmasseBundle\Entity\Groupe $groupeAssocie
+     * @return Vote
+     */
+    public function setGroupeAssocie(\Votenmasse\VotenmasseBundle\Entity\Groupe $groupeAssocie = null)
+    {
+        $this->groupeAssocie = $groupeAssocie;
+
+        return $this;
+    }
+
+    /**
+     * Get groupeAssocie
+     *
+     * @return \Votenmasse\VotenmasseBundle\Entity\Groupe 
+     */
+    public function getGroupeAssocie()
+    {
+        return $this->groupeAssocie;
     }
 
     /**

@@ -81,3 +81,7 @@ votenmasse_votenmasse_groupe_accepter_utilisateur:
 votenmasse_votenmasse_groupe_refuser_utilisateur:
     pattern: /groupe/refuser/utilisateur
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupeRefuserUtilisateur }
+
+votenmasse_votenmasse_vote_supprimer:
+    pattern: /vote/supprimer
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:supprimerVote }

@@ -55,6 +55,131 @@ class VotenmasseController extends Controller {
 					}
 				}
 			}
+				
+			// On recupère tous les groupes (Modo ou membre)
+			$groupes_utilisateur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+				->findByUtilisateur($utilisateur);
+				
+			$groupes_u = NULL;
+				
+			foreach ($groupes_utilisateur as $cle => $valeur) {
+				$groupes_u[] = $valeur->getGroupe();
+			}
+			
+			$votes_groupes_associes = NULL;
+		
+			if ($groupes_u != NULL) {
+				foreach ($groupes_u as $cle => $valeur) {
+					// On recupère tous les votes associés aux groupes auxquels appartient l'utilisateur
+					$votes_groupes_associes[] = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Vote')
+						->findByGroupeAssocie($valeur);
+				}
+			}
+			
+			// On recupère tous les groupes Modo
+			$groupes_moderateur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+				->findBy(array("utilisateur" => $utilisateur, "moderateur" => true));
+				
+			$groupes_m = NULL;
+				
+			foreach ($groupes_moderateur as $cle => $valeur) {
+				$groupes_m[] = $valeur->getGroupe();
+			}
+			
+			$votes_moderation = $votes_admin;
+			
+			// Votes associés à un groupe dont l'utilisateur est modérateur
+			if($groupes_m != NULL) {
+				foreach ($groupes_m as $cle => $valeur) {
+					$votes_groupe_moderateur_moderation = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Vote')
+						->findByGroupeAssocie($valeur);
+				}
+					
+				foreach ($votes_groupe_moderateur_moderation as $cle => $valeur) {
+					$votes_g_moderateur_moderation[] = $valeur;
+				}
+				
+				if(isset($votes_g_moderateur_moderation)) {
+					if ($votes_moderation != NULL) {
+						$cpt = sizeof($votes_moderation);
+			
+						foreach ($votes_g_moderateur_moderation as $cle => $valeur) {
+							$existe_deja = false;
+							
+							for ($i = ($cpt-1); $i >= 0; $i--) {
+								if ($votes_moderation[$i] == $valeur) {
+									$existe_deja = true;
+								}
+							}
+							
+							if ($existe_deja == false) {
+								$votes_moderation[$cpt] = $valeur;
+								$cpt++;
+							}
+						}
+					}
+					else {
+						foreach ($votes_g_moderateur_moderation as $cle => $valeur) {
+							$votes_moderation = $valeur;
+						}
+					}
+				}
+			}
+			
+			$groupes = NULL;
+			
+			$groupes_administrateur = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findByAdministrateur($utilisateur);
+				
+			if (isset($groupes_administrateur )) {
+				if ($groupes_administrateur != NULL) {
+					$groupes[] = $groupes_administrateur;
+				}
+			}
+			
+			// Vote associé à un groupe dont l'utilisateur est administrateur
+			if($groupes != NULL) {
+				foreach ($groupes as $cle => $valeur) {
+					$votes_groupe_administrateur_moderation = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Vote')
+						->findByGroupeAssocie($valeur);
+				}
+					
+				foreach ($votes_groupe_administrateur_moderation as $cle => $valeur) {
+					$votes_g_administrateur_moderation[] = $valeur;
+				}
+				
+				if(isset($votes_g_administrateur_moderation)) {
+					if ($votes_moderation != NULL) {
+						$cpt = sizeof($votes_moderation);
+			
+						foreach ($votes_g_administrateur_moderation as $cle => $valeur) {
+							$existe_deja = false;
+							
+							for ($i = ($cpt-1); $i >= 0; $i--) {
+								if ($votes_moderation[$i] == $valeur) {
+									$existe_deja = true;
+								}
+							}
+							
+							if ($existe_deja == false) {
+								$votes_moderation[$cpt] = $valeur;
+								$cpt++;
+							}
+						}
+					}
+					else {
+						foreach ($votes_g_administrateur_moderation as $cle => $valeur) {
+							$votes_moderation = $valeur;
+						}
+					}
+				}
+			}
 			
 			$votes_moderation_createurs = null;
 		
@@ -66,24 +191,56 @@ class VotenmasseController extends Controller {
 				}		
 			}
 			
-			$votes = $votes_admin;
-				
-			// On recupère tous les groupes (Admin ou membre)
-			$groupes_utilisateur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			$votes = $votes_moderation;
+			
+			$donner_avis = NULL;
+			
+			$votes_donner_avis = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
 				->findByUtilisateur($utilisateur);
 				
-			foreach ($groupes_utilisateur as $cle => $valeur) {
-				$groupes_u[] = $valeur->getGroupe();
+			foreach ($votes_donner_avis as $cle => $valeur) {
+				// On recupère tous les votes pour lesquels il a donné son avis
+				$donner_avis[] = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Vote')
+					->findByGroupeAssocie($valeur->getVote());
 			}
 			
-			$groupes_administrateur = $this->getDoctrine()
-				->getRepository('VotenmasseVotenmasseBundle:Groupe')
-				->findByAdministrateur($utilisateur);
-				
-			if (isset($groupes_administrateur )) {
-				if ($groupes_administrateur != NULL) {
-					$groupes[] = $groupes_administrateur;
+			if ($donner_avis != NULL) {
+				$cpt = sizeof($votes);
+				foreach ($donner_avis as $cle => $valeur) {
+					foreach ($valeur as $key => $value) {
+						$existe_deja = false;
+						for ($i = ($cpt-1); $i >= 0; $i--) {
+							if ($votes[$i] == $value) {
+								$existe_deja = true;
+							}
+						}
+						
+						if ($existe_deja == false) {
+							$votes[$cpt] = $value;
+							$cpt++;
+						}
+					}
+				}
+			}
+			
+			if ($votes_groupes_associes != NULL) {
+				$cpt = sizeof($votes);
+				foreach ($votes_groupes_associes as $cle => $valeur) {
+					foreach ($valeur as $key => $value) {
+						$existe_deja = false;
+						for ($i = ($cpt-1); $i >= 0; $i--) {
+							if ($votes[$i] == $value) {
+								$existe_deja = true;
+							}
+						}
+						
+						if ($existe_deja == false) {
+							$votes[$cpt] = $value;
+							$cpt++;
+						}
+					}
 				}
 			}
 			
@@ -196,6 +353,14 @@ class VotenmasseController extends Controller {
 			
 			if ($last_groupes == NULL) {
 				$last_groupes = NULL;
+			}
+			
+			if ($groupes_moderation == NULL) {
+				$groupes_moderation = NULL;
+			}
+			
+			if ($votes_moderation == NULL) {
+				$votes_moderation = NULL;
 			}
 		
 			if ($votes != NULL && $groupes_final != NULL) {
@@ -619,6 +784,236 @@ class VotenmasseController extends Controller {
 					'message_erreur' => 'Un vote privé doit obligatoirement être associé à un groupe privé',
 					'utilisateur' => $u));
 			}
+		  }
+		  
+		  // On vérifie qu'il n'y a pas deux choix identiques
+		  if(isset($request->request->get("form")['choix10'])) {
+			if ($request->request->get("form")['choix10'] == $request->request->get("form")['choix9'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix8'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix7'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix10'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix8'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix7'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix7'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix9'])) {
+			if ($request->request->get("form")['choix9'] == $request->request->get("form")['choix8'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix7'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix9'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix7'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix8'])) {
+			if ($request->request->get("form")['choix8'] == $request->request->get("form")['choix7'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix8'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix7'])) {
+			if ($request->request->get("form")['choix7'] == $request->request->get("form")['choix6'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix7'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix6'])) {
+			if ($request->request->get("form")['choix6'] == $request->request->get("form")['choix5'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix6'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix5'])) {
+			if ($request->request->get("form")['choix5'] == $request->request->get("form")['choix4'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix5'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix4'])) {
+			if ($request->request->get("form")['choix4'] == $request->request->get("form")['choix3'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix4'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else if (isset($request->request->get("form")['choix3'])) {
+			if ($request->request->get("form")['choix3'] == $request->request->get("form")['choix2'] ||
+				$request->request->get("form")['choix3'] == $request->request->get("form")['choix1'] ||
+				$request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
+		  }
+		  else {
+			if ($request->request->get("form")['choix2'] == $request->request->get("form")['choix1']) {
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:creation_vote.html.twig', array(
+						'form' => $form->createView(),
+						'message_erreur' => 'Tous les choix doivent être différents',
+						'utilisateur' => $u));
+				}
 		  }
 		  
 		  $createur = $this->getDoctrine()
@@ -9396,6 +9791,44 @@ class VotenmasseController extends Controller {
 			}
 		}
 		
+		$utilisateurs = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findAll();
+		
+		$utilisateurs_final = NULL;
+		
+		if ($utilisateurs != NULL) {
+			$cpt = sizeof($groupes_utilisateurs);
+		
+			foreach ($utilisateurs as $cle => $valeur) {
+				$est_membre_du_groupe = false;
+				
+				for ($i = ($cpt-1); $i >= 0; $i--) {
+					if ($groupes_utilisateurs[$i]->getUtilisateur() == $valeur) {
+						$est_membre_du_groupe = true;
+					}
+				}
+				
+				if ($est_membre_du_groupe == false) {
+					$utilisateurs_final[] = $valeur;
+				}
+			}
+		}
+		
+		$utilisateurs_final_final_version = NULL;
+		
+		if ($utilisateurs_final != NULL) {
+			foreach ($utilisateurs_final as $cle => $valeur) {
+				if ($valeur != $administrateur_groupe_infos) {
+					$utilisateurs_final_final_version[] = $valeur;
+				}
+			}
+		}
+			
+		if ($utilisateurs_final_final_version == NULL) {
+			$utilisateurs_final_final_version = NULL;
+		}
+		
 		if ($groupe_infos == NULL) {
 			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:afficheGroupe.html.twig', array(
 					'utilisateur' => $u,
@@ -9416,12 +9849,18 @@ class VotenmasseController extends Controller {
 						'moderateur' => $moderateur,
 						'membre' => $membre,
 						'en_attente' => $en_attente,
-						'demandes' => $utilisateurs_en_attente));	
+						'demandes' => $utilisateurs_en_attente,
+						'utilisateurs' => $utilisateurs_final_final_version));	
 		}
 	}
 	
 	public function quitterGroupeAction($groupe_id = null) {
 		$request = $this->get('request');
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
 		$i = $session->get('invite');
@@ -9494,6 +9933,11 @@ class VotenmasseController extends Controller {
 	
 	public function rejoindreGroupeAction($groupe_id = null) {
 		$request = $this->get('request');
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
 		$i = $session->get('invite');
@@ -9739,6 +10183,10 @@ class VotenmasseController extends Controller {
 	
 	public function supprimerGroupeAction($groupe_id = NULL) {
 		$request = $this->get('request');
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 				
 		$em = $this->getDoctrine()->getManager();	
 		
@@ -9762,8 +10210,6 @@ class VotenmasseController extends Controller {
 		$votes_associes = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findByGroupeAssocie($groupe);
-		
-		var_dump($votes_associes);die;
 		
 		if ($votes_associes != NULL) {
 			foreach ($votes_associes as $cle => $valeur) {
@@ -9829,6 +10275,10 @@ class VotenmasseController extends Controller {
 		
 		$groupe_id = $request->request->get("groupe_id");
 		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
@@ -9841,11 +10291,28 @@ class VotenmasseController extends Controller {
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 			->findOneBy(array('utilisateur' => $utilisateur, 'groupe' => $groupe));
 			
-		$groupe_utilisateur->setAccepte(true);
+		if ($groupe_utilisateur == NULL) {
+			$groupe_utilisateur = NULL;
+		}
 		
-		$em = $this->getDoctrine()->getManager();
-		$em->persist($groupe_utilisateur);
-		$em->flush();
+		if ($groupe_utilisateur != NULL) {
+			$groupe_utilisateur->setAccepte(true);
+			
+			$em = $this->getDoctrine()->getManager();
+			$em->persist($groupe_utilisateur);
+			$em->flush();
+		}
+		else {
+			$groupe_utilisateur = new GroupeUtilisateur();
+			$groupe_utilisateur->setUtilisateur($utilisateur);
+			$groupe_utilisateur->setGroupe($groupe);
+			$groupe_utilisateur->setAccepte(true);
+			$groupe_utilisateur->setModerateur(false);
+			
+			$em = $this->getDoctrine()->getManager();
+			$em->persist($groupe_utilisateur);
+			$em->flush();
+		}
 		
 		$groupe_id = (int)$groupe_id;
 		
@@ -9856,6 +10323,10 @@ class VotenmasseController extends Controller {
 		$request = $this->get('request');
 		
 		$groupe_id = $request->request->get("groupe_id");
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 		
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
@@ -9882,29 +10353,280 @@ class VotenmasseController extends Controller {
 		$request = $this->get('request');
 		
 		$groupe_id = $request->request->get("groupe_id");
-		$vote_id = $request->request->get("vote_id");
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		$vote_id = (int)$request->request->get("vote_id");
 		
 		$vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findOneById($vote_id);
 			
-		var_dump($vote);die;
-		/*	
+		// Modo de vote
+		$utilisateur_vote = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+			->findByVote($vote);
+		
+		$em = $this->getDoctrine()->getManager();
+			
+		if ($utilisateur_vote != NULL) {
+			foreach ($utilisateur_vote as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Avis donnés
+		$avis_donnes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+			->findByVote($vote);
+		
+		if ($avis_donnes != NULL) {
+			foreach ($avis_donnes as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Commentaires donnés
+		$commentaires_donnes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+			->findByVote($vote);
+		
+		if ($commentaires_donnes != NULL) {
+			foreach ($commentaires_donnes as $cle => $valeur) {
+				$commentaires_a_supprimer = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+					->findById($valeur->getCommentaire());
+			
+				$em->remove($valeur);
+				$em->flush();
+			}
+			
+			foreach ($commentaires_a_supprimer as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+	
+		// Le vote lui-même
+		$em->remove($vote);
+		$em->flush();
+		
+		$groupe_id = (int)$groupe_id;
+		
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
+	}
+	
+	public function groupeSupprimerUtilisateurAction() {
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		$utilisateur_id = (int)$request->request->get("membre_id");
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-			->findOneById($request->request->get("utilisateur_id"));
+			->findOneById($utilisateur_id);
+			
+		$em = $this->getDoctrine()->getManager();
+		
+		// Du groupe
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findBy(array("groupe" => $groupe, "utilisateur" => $utilisateur));
+		
+		if ($groupe_utilisateur != NULL) {
+			foreach ($groupe_utilisateur as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Des votes qu'il a créé associés au groupe
+		$votes_associes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findBy(array("groupeAssocie" => $groupe, "createur" => $utilisateur));
+		
+		if ($votes_associes != NULL) {
+			foreach ($votes_associes as $cle => $valeur) {
+				// Modo de vote
+				$utilisateur_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+					->findByVote($valeur);
+					
+				if ($utilisateur_vote != NULL) {
+					foreach ($utilisateur_vote as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Avis donnés
+				$avis_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+					->findByVote($valeur);
+				
+				if ($avis_donnes != NULL) {
+					foreach ($avis_donnes as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Commentaires donnés
+				$commentaires_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findByVote($valeur);
+				
+				if ($commentaires_donnes != NULL) {
+					foreach ($commentaires_donnes as $key => $value) {
+						$commentaires_a_supprimer = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+							->findById($value->getCommentaire());
+					
+						$em->remove($value);
+						$em->flush();
+					}
+					
+					foreach ($commentaires_a_supprimer as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+			
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Des votes du groupe auquel il a participé
+		$votes_associes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findBy(array("groupeAssocie" => $groupe));
+		
+		if ($votes_associes != NULL) {
+			foreach ($votes_associes as $cle => $valeur) {
+				// Modo de vote
+				$utilisateur_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+					->findBy(array("vote" => $valeur, "utilisateur" => $utilisateur));
+					
+				if ($utilisateur_vote != NULL) {
+					foreach ($utilisateur_vote as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Avis donnés
+				$avis_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+					->findBy(array("vote" => $valeur, "utilisateur" => $utilisateur));
+				
+				if ($avis_donnes != NULL) {
+					foreach ($avis_donnes as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Commentaires donnés
+				$commentaires_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findBy(array("vote" => $valeur, "utilisateur" => $utilisateur));
+				
+				if ($commentaires_donnes != NULL) {
+					foreach ($commentaires_donnes as $key => $value) {
+						$commentaires_a_supprimer = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+							->findById($value->getCommentaire());
+					
+						$em->remove($value);
+						$em->flush();
+					}
+					
+					foreach ($commentaires_a_supprimer as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+			}
+		}
+		
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
+	}
+	
+	public function groupeDonnerPrivilegeAction() {
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		$utilisateur_id = (int)$request->request->get("membre_id");
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+			
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneById($utilisateur_id);
 		
 		$groupe_utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 			->findOneBy(array('utilisateur' => $utilisateur, 'groupe' => $groupe));
+			
+		$groupe_utilisateur->setModerateur(true);
 		
 		$em = $this->getDoctrine()->getManager();
-		$em->remove($groupe_utilisateur);
+		$em->persist($groupe_utilisateur);
 		$em->flush();
-		*/
 		
-		$groupe_id = (int)$groupe_id;
-		$vote_id = (int)$vote_id;
+		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
+	}
+	
+	public function groupeSupprimerPrivilegeAction() {
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		$utilisateur_id = (int)$request->request->get("membre_id");
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+			
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneById($utilisateur_id);
+		
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findOneBy(array('utilisateur' => $utilisateur, 'groupe' => $groupe));
+			
+		$groupe_utilisateur->setModerateur(false);
+		
+		$em = $this->getDoctrine()->getManager();
+		$em->persist($groupe_utilisateur);
+		$em->flush();
 		
 		return $this->redirect($this->generateUrl('votenmasse_votenmasse_affichage_groupe', array('groupe_id' => $groupe_id)));
 	}

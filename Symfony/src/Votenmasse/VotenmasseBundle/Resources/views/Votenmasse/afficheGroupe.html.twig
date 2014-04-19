@@ -42,6 +42,20 @@
 											<td>
 												<center><b>Statut</b></center>
 											</td>
+											{% if valide is defined %}
+												{% if valide is sameas(true) %}
+													{% if moderateur is sameas(true) or administrateur is sameas(true) %}
+														<td>
+															<center><b>Bannir</b></center>
+														</td>
+													{% endif %}
+													{% if administrateur is sameas(true) %}
+														<td>
+															<center><b>Privilégier</b></center>
+														</td>
+													{% endif %}
+												{% endif %}
+											{% endif %}
 										</tr>
 										<tr>
 											<td>
@@ -55,6 +69,12 @@
 											</td>
 											<td>
 												<center>Administrateur</center>
+											</td>
+											<td>
+											
+											</td>
+											<td>
+											
 											</td>
 										</tr>
 										{% for membre in membres %}
@@ -78,6 +98,58 @@
 														{% endif %}
 													</center>
 												</td>
+												{% if valide is defined %}
+													{% if valide is sameas(true) %}
+														{% if administrateur is sameas(true) %}
+															<td>
+																<center>
+																	<form action="{{ path('votenmasse_votenmasse_groupe_supprimer_utilisateur') }}" method="post">
+																		<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																		<input type = "hidden" name = "membre_id" value = {{ membre.utilisateur.id }} />
+																		<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+																	</form>
+																</center>
+															</td>
+														{% endif %}
+														{% if moderateur is sameas(true) %}
+															{% if utilisateur is not sameas(membre.utilisateur.login) %}
+																<td>
+																	<center>
+																		<form action="{{ path('votenmasse_votenmasse_groupe_supprimer_utilisateur') }}" method="post">
+																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																			<input type = "hidden" name = "membre_id" value = {{ membre.utilisateur.id }} />
+																			<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+																		</form>
+																	</center>
+																</td>
+															{% endif %}
+														{% endif %}
+														{% if administrateur is sameas(true) %}
+															{% if membre.moderateur is sameas(false) %}
+																<td>
+																	<center>
+																		<form action="{{ path('votenmasse_votenmasse_groupe_donner_privilege') }}" method="post">
+																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																			<input type = "hidden" name = "membre_id" value = {{ membre.utilisateur.id }} />
+																			<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-plus"></i> </button>
+																		</form>
+																	</center>
+																</td>
+															{% endif %}
+															{% if membre.moderateur is sameas(true) %}
+																<td>
+																	<center>
+																		<form action="{{ path('votenmasse_votenmasse_groupe_supprimer_privilege') }}" method="post">
+																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																			<input type = "hidden" name = "membre_id" value = {{ membre.utilisateur.id }} />
+																			<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-minus"></i> </button>
+																		</form>
+																	</center>
+																</td>
+															{% endif %}
+														{% endif %}
+													{% endif %}
+												{% endif %}
 											</tr>
 										{% endfor %}
 									</table>
@@ -112,9 +184,15 @@
 													<td>
 														<center><b>Créateur</b></center>
 													</td>
-													<td>
-														<center><b>Supprimer</b></center>
-													</td>
+													{% if valide is defined %}
+														{% if valide is sameas(true) %}
+															{% if moderateur is sameas(true) or administrateur is sameas(true) %}
+																<td>
+																	<center><b>Supprimer</b></center>
+																</td>
+															{% endif %}
+														{% endif %}
+													{% endif %}
 												</tr>
 												{% set cpt = 0 %}
 												{% for vote in votes_associes %}
@@ -161,15 +239,21 @@
 														<td>
 															<center>{{ vote_createurs[cpt] }}</center>
 														</td>
-														<td>
-															<center>
-																<form action="{{ path('votenmasse_votenmasse_vote_supprimer') }}" method="post">
-																	<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
-																	<input type = "hidden" name = "vote_id" value = {{ vote.id }} />
-																	<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
-																</form>
-															</center>
-														</td>
+														{% if valide is defined %}
+															{% if valide is sameas(true) %}
+																{% if moderateur is sameas(true) or administrateur is sameas(true) %}
+																	<td>
+																		<center>
+																			<form action="{{ path('votenmasse_votenmasse_vote_supprimer') }}" method="post">
+																				<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																				<input type = "hidden" name = "vote_id" value = {{ vote.id }} />
+																				<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+																			</form>
+																		</center>
+																	</td>
+																{% endif %}
+															{% endif %}
+														{% endif %}
 														{% set cpt = cpt + 1 %}
 													</tr>
 												{% endfor %}
@@ -240,7 +324,7 @@
 																		<form action="{{ path('votenmasse_votenmasse_groupe_refuser_utilisateur') }}" method="post">
 																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
 																			<input type = "hidden" name = "utilisateur_id" value = {{ demande.utilisateur.id }} />
-																			<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+																			<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
 																		</form>
 																	</center>
 																</td>
@@ -252,6 +336,49 @@
 											{% if demandes is null %}
 												<div>
 													Aucune demande pour rejoindre le groupe {{ groupe.nom }}
+												</div>
+											{% endif %}
+											{% if utilisateurs is not null %}
+												<h3>Ajouter des utilisateurs au groupe</h3>
+												<div>
+													<table align = "center">
+														<tr>
+															<td>
+																<center><b>Nom</b></center>
+															</td>
+															<td>
+																<center><b>Prénom</b></center>
+															</td>
+															<td>
+																<center><b>Login</b></center>
+															</td>
+															<td>
+																<center><b>Ajouter</b></center>
+															</td>
+														</tr>
+														{% for utilisateur in utilisateurs %}
+															<tr>
+																<td>
+																	<center>{{ utilisateur.nom }}</center>
+																</td>
+																<td>
+																	<center>{{ utilisateur.prenom }} </center>
+																</td>
+																<td>
+																	<center>{{ utilisateur.login }}</center>
+																</td>
+																<td>
+																	<center>
+																		<form action="{{ path('votenmasse_votenmasse_groupe_accepter_utilisateur') }}" method="post">
+																			<input type = "hidden" name = "groupe_id" value = {{ groupe_id }} />
+																			<input type = "hidden" name = "utilisateur_id" value = {{ utilisateur.id }} />
+																			<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+																		</form>
+																	</center>
+																</td>
+															</tr>
+														{% endfor %}
+													</table>
 												</div>
 											{% endif %}
 										{% endif %}
@@ -270,6 +397,11 @@
 				{% if membre is sameas(true) %}
 					<form action="{{ path('votenmasse_votenmasse_quitter_groupe', { 'groupe_id': groupe_id }) }}" method="post">
 						<button class="btn btn-primary btn-mini" type="submit">Quitter le groupe <i class="icon-white icon-ok-sign"></i> </button>
+					</form>
+				{% endif %}
+				{% if membre is sameas(false) and moderateur is sameas(false) and administrateur_groupe_infos.login is not sameas(utilisateur) %}
+					<form action="{{ path('votenmasse_votenmasse_quitter_groupe', { 'groupe_id': groupe_id }) }}" method="post">
+						<button class="btn btn-primary btn-mini" type="submit">Annuler la demande <i class="icon-white icon-ok-sign"></i> </button>
 					</form>
 				{% endif %}
 				{% if moderateur is sameas(true) %}

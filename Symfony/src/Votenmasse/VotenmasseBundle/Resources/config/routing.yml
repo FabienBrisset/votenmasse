@@ -83,5 +83,17 @@ votenmasse_votenmasse_groupe_refuser_utilisateur:
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupeRefuserUtilisateur }
 
 votenmasse_votenmasse_vote_supprimer:
-    pattern: /vote/supprimer
+    pattern: /vote/action/supprimer
     defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:supprimerVote }
+
+votenmasse_votenmasse_groupe_supprimer_utilisateur:
+   pattern: /groupe/action/supprimer/utilisateur
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupeSupprimerUtilisateur }
+
+votenmasse_votenmasse_groupe_donner_privilege:
+   pattern: /groupe/action/donner/privilege
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupeDonnerPrivilege }
+
+votenmasse_votenmasse_groupe_supprimer_privilege:
+   pattern: /groupe/action/supprimer/privilege
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:groupeSupprimerPrivilege }

@@ -56,5 +56,22 @@
 			});
 		  });
 	  </script>
+	  <script>
+		  $(function() {
+			$( "#radio" ).buttonset();
+		  });
+	  </script>
+	  
+	  <script> 
+		function chgpage1() { 
+			location.href = "{{ path('votenmasse_votenmasse_moderation', { 'etat': 'Ouvertes' }) }}"; exit; 
+		} 
+		function chgpage2() { 
+			location.href = "{{ path('votenmasse_votenmasse_moderation', { 'etat': 'Sous modération' }) }}"; exit; 
+		} 
+		function chgpage3() { 
+			location.href = "{{ path('votenmasse_votenmasse_moderation', { 'etat': 'Fermées' }) }}"; exit; 
+		} 
+	  </script>   
   {% endblock %}
 </html>

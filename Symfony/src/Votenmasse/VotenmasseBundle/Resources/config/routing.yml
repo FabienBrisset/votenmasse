@@ -117,3 +117,31 @@ votenmasse_votenmasse_vote_supprimer_moderateur:
 votenmasse_votenmasse_vote_supprimer_commentaire:
    pattern: /vote/supprimer/commentaire
    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:commentaireSupprimer }
+
+votenmasse_votenmasse_moderation_supprimer_utilisateur:
+    pattern: /moderation/supprimer/utilisateur/{log}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:moderationSupprimer, log: null}
+
+votenmasse_votenmasse_moderation_accepter_utilisateur:
+    pattern: /moderation/accepter/utilisateur/{log}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:moderationAccepter, log: null}
+
+votenmasse_votenmasse_moderation:
+    pattern: /moderation/{etat}
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:moderation, etat: null }
+
+votenmasse_votenmasse_bannir:
+    pattern: /bannir
+    defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:bannir }
+
+votenmasse_votenmasse_g_supprimer:
+   pattern: /g/supprimer
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:gSupprimer }
+
+votenmasse_votenmasse_v_supprimer:
+   pattern: /v/supprimer
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:vSupprimer }
+
+votenmasse_votenmasse_c_supprimer:
+   pattern: /c/supprimer
+   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:cSupprimer }

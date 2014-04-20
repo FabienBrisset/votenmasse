@@ -63,7 +63,7 @@
 														<form action="{{ path('votenmasse_votenmasse_vote_supprimer_moderateur') }}" method="post">
 															<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
 															<input type = "hidden" name = "membre_id" value = {{ moderateur.id }} />
-															<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+															<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-minus"></i> </button>
 														</form>
 													</center>
 												</td>
@@ -94,7 +94,7 @@
 														<form action="{{ path('votenmasse_votenmasse_vote_ajouter_moderateur') }}" method="post">
 															<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
 															<input type = "hidden" name = "membre_id" value = {{ utilisateur.id }} />
-															<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+															<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-plus"></i> </button>
 														</form>
 													</center>
 												</td>

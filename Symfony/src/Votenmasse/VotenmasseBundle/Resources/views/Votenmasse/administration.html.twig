@@ -13,115 +13,457 @@
 	<div id="accordion">
 	  <h3>Liste des utilisateurs</h3>
 	  <div>
-		<p>
-		   <table class="table">
+		{% if utilisateurs is not null %}
+			<table align = "center" class = "table">
 				<tr>
 					<td>
-						<div class="well">
-							{% if utilisateurs is not null %}
-								{% for utilisateur in utilisateurs %}
-									Login : {{ utilisateur.login }} <br>
-									Nom : {{ utilisateur.nom }} <br>
-									Prénom : {{ utilisateur.prenom }} <br>
-									Mail : {{ utilisateur.mail }} <br><br><br>
-								{% endfor %}
-							{% endif %}
-						</div>
+						<center><b>Login</b></center>
+					</td>
+					<td>
+						<center><b>Nom</b></center>
+					</td>
+					<td>
+						<center><b>Prénom</b></center>
+					</td>
+					<td>
+						<center><b>Mail</b></center>
+					</td>
+					<td>
+						<center><b>Bannir</b></center>
 					</td>
 				</tr>
+				{% for utilisateur in utilisateurs %}
+					<tr>
+						<td>
+							<center>{{ utilisateur.login }}</center>
+						</td>
+						<td>
+							<center>{{ utilisateur.nom }} </center>
+						</td>
+						<td>
+							<center>{{ utilisateur.prenom }}</center>
+						</td>
+						<td>
+							<center>{{ utilisateur.mail }}</center>
+						</td>
+						<td>
+							<center>
+								<form action="{{ path('votenmasse_votenmasse_bannir') }}" method="post">
+									<input type = "hidden" name = "membre_id" value = {{ utilisateur.id }} />
+									<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+								</form>
+							</center>
+						</td>
+					</tr>
+				{% endfor %}
 			</table>
-		</p>
-	  </div>
+		  {% else %}
+			<center>Aucun utilisateur</center>
+		  {% endif %}
+		</div>
 	  <h3>Liste des groupes</h3>
 	  <div>
-		<p>
-			<table class="table">
+		{% if groupes is not null %}
+			<table align = "center" class = "table">
 				<tr>
 					<td>
-						<div class="well">
-							{% if groupes is not null %}
-								{% for groupe in groupes %}
-									Nom : {{ groupe.nom }} <br>
-									Description : {{ groupe.description }} <br>
-									Administrateur : {{ groupe.administrateur.login }} <br>
-									Etat : {{ groupe.etat }} <br><br><br><br>
-								{% endfor %}
-							{% endif %}
-						</div>
+						<center><b>Type</b></center>
 					</td>
-				</tr>  
+					<td>
+						<center><b>Nom</b></center>
+					</td>
+					<td>
+						<center><b>Description</b></center>
+					</td>
+					<td>
+						<center><b>Administrateur</b></center>
+					</td>
+					<td>
+						<center><b>Supprimer</b></center>
+					</td>
+				</tr>
+				{% for groupe in groupes %}
+					<tr>
+						<td>
+							{% if groupe.etat is sameas('Groupe public') %}
+								<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+							{% endif %} 
+							{% if groupe.etat is sameas('Groupe réservé aux inscrits') %}
+								<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+							{% endif %}
+							{% if groupe.etat is sameas('Groupe privé') %}
+								<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+							{% endif %}
+						</td>
+						<td>
+							<center>{{ groupe.nom }}</center>
+						</td>
+						<td>
+							<center>{{ groupe.description }} </center>
+						</td>
+						<td>
+							<center>{{ groupe.administrateur.login }}</center>
+						</td>
+						<td>
+							<center>
+								<form action="{{ path('votenmasse_votenmasse_g_supprimer') }}" method="post">
+									<input type = "hidden" name = "groupe_id" value = {{ groupe.id }} />
+									<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+								</form>
+							</center>
+						</td>
+					</tr>
+				{% endfor %}
 			</table>
-		</p>
+		{% endif %}
+		{% if groupes is null %}
+			<center>Aucun groupe</center>
+		{% endif %}
 	  </div>
 	  <h3>Liste des votes</h3>
 	  <div>
-		<p>
-			<table class="table">
+		{% if votes is not null %}
+			<table align = "center" class = "table">
 				<tr>
 					<td>
-						<div class="well">
-							{% if votes is not null %}
-								{% set cpt = 0 %}
-								{% for vote in votes %}
-									Nom : {{ vote.nom }} <br>
-									Texte : {{ vote.texte }} <br>
-									Choix 1 : {{ vote.choix1 }} <br>
-									Choix 2 : {{ vote.choix2 }} <br>
-									{% if vote.choix3 is not null %}
-										Choix 3 : {{ vote.choix3 }} <br>
-									{% endif %}
-									{% if vote.choix4 is not null %}
-										Choix 4 : {{ vote.choix4 }} <br>
-									{% endif %}
-									{% if vote.choix5 is not null %}
-										Choix 5 : {{ vote.choix5 }} <br>
-									{% endif %}
-									{% if vote.choix6 is not null %}
-										Choix 6 : {{ vote.choix6 }} <br>
-									{% endif %}
-									{% if vote.choix7 is not null %}
-										Choix 7 : {{ vote.choix7 }} <br>
-									{% endif %}
-									{% if vote.choix8 is not null %}
-										Choix 8 : {{ vote.choix8 }} <br>
-									{% endif %}
-									{% if vote.choix9 is not null %}
-										Choix 9 : {{ vote.choix9 }} <br>
-									{% endif %}
-									{% if vote.choix10 is not null %}
-										Choix 10 : {{ vote.choix10 }} <br>
-									{% endif %}
-									Date de création : {{ vote.dateDeCreation|date("d/m/y") }} <br>
-									Date de fin : {{ vote.dateDeFin|date("d/m/y") }} <br>
-									Type : {{ vote.type }} <br>
-									{% if vote.groupeAssocie is not null %}
-									Groupe associé : {{ vote.groupeAssocie.nom }} <br>
-									{% endif %}
-									Etat : {% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %} <br>
-									Créateur : {{ vote_createurs[cpt] }} <br><br><br>
-									{% set cpt = cpt + 1 %}
-								{% endfor %}
-							{% endif %}
-						</div>
+						<center><b>Supprimer</b></center>
+					</td>
+					<td>
+						<center><b>Type</b></center>
+					</td>
+					<td>
+						<center><b>Nom</b></center>
+					</td>
+					<td>
+						<center><b>Description</b></center>
+					</td>
+					<td>
+						<center><b>Date de création</b></center>
+					</td>
+					<td>
+						<center><b>Date de fin</b></center>
+					</td>
+					<td>
+						<center><b>Groupe associé</b></center>
+					</td>
+					<td>
+						<center><b>Etat</b></center>
+					</td>
+					<td>
+						<center><b>Créateur</b></center>
+					</td>
+					<td>
+						<center><b>Choix 1</b></center>
+					</td>
+					<td>
+						<center><b>Choix 2</b></center>
+					</td>
+					<td>
+						<center><b>Choix 3</b></center>
+					</td>
+					<td>
+						<center><b>Choix 4</b></center>
+					</td>
+					<td>
+						<center><b>Choix 5</b></center>
+					</td>
+					<td>
+						<center><b>Choix 6</b></center>
+					</td>
+					<td>
+						<center><b>Choix 7</b></center>
+					</td>
+					<td>
+						<center><b>Choix 8</b></center>
+					</td>
+					<td>
+						<center><b>Choix 9</b></center>
+					</td>
+					<td>
+						<center><b>Choix 10</b></center>
 					</td>
 				</tr>
+				{% set cpt = 0 %}
+				{% for vote in votes %}
+					<tr>
+						<td>
+							<center>
+								<form action="{{ path('votenmasse_votenmasse_v_supprimer') }}" method="post">
+									<input type = "hidden" name = "vote_id" value = {{ vote.id }} />
+									<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+								</form>
+							</center>
+						</td>
+						<td>
+							{% if vote.type is sameas('Vote public') %}
+								<center><img src = "{{ asset('img/pub.png') }}" alt = "Public" /></center>
+							{% endif %} 
+							{% if vote.type is sameas('Vote réservé aux inscrits') %}
+								<center><img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /></center>
+							{% endif %}
+							{% if vote.type is sameas('Vote privé') %}
+								<center><img src = "{{ asset('img/pri.png') }}" alt = "Privé" /></center>
+							{% endif %}
+						</td>
+						<td>
+							<center>{{ vote.nom }}</center>
+						</td>
+						<td>
+							<center>{{ vote.texte }} </center>
+						</td>
+						<td>
+							<center>{{ vote.dateDeCreation|date("d/m/y") }}</center>
+						</td>
+						<td>
+							<center>{{ vote.dateDeFin|date("d/m/y") }}</center>
+						</td>
+						<td>
+							{% if vote.groupeAssocie is not null %}
+								<center>{{ vote.groupeAssocie.nom }}</center>
+							{% endif %}
+							{% if vote.groupeAssocie is null %}
+								<center>Aucun</center>
+							{% endif %}
+						</td>
+						<td>
+							<center>{% if vote.etat is sameas(true) %} En cours {% endif %} {% if vote.etat is sameas(false) %} Terminé {% endif %}</center>
+						</td>
+						<td>
+							<center>{{ vote_createurs[cpt] }}</center>
+						</td>
+						{% set cpt = cpt + 1 %}
+						<td>
+							<center>{{ vote.choix1 }}</center>
+						</td>
+						<td>
+							<center>{{ vote.choix2 }}</center>
+						</td>
+						{% if vote.choix3 is not null %}
+							<td>
+								<center>{{ vote.choix3 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix4 is not null %}
+							<td>
+								<center>{{ vote.choix4 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix5 is not null %}
+							<td>
+								<center>{{ vote.choix5 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix6 is not null %}
+							<td>
+								<center>{{ vote.choix6 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix7 is not null %}
+							<td>
+								<center>{{ vote.choix7 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix8 is not null %}
+							<td>
+								<center>{{ vote.choix8 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix9 is not null %}
+							<td>
+								<center>{{ vote.choix9 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+						{% if vote.choix10 is not null %}
+							<td>
+								<center>{{ vote.choix10 }}</center>
+							</td>
+						{% else %}
+							<td>
+								<center>Aucun</center>
+							</td>
+						{% endif %}
+					</tr>
+				{% endfor %}
 			</table>
-		</p>
+		{% endif %}
+		{% if votes is null %}
+			<center>Aucun vote</center>
+		{% endif %}
+	  </div>
+	  <h3>Liste des commentaires</h3>
+	  <div>
+		{% if commentaires is not null %}
+			<table align = "center" class = "table">
+				<tr>
+					<td>
+						<center><b>Date de création</b></center>
+					</td>
+					<td>
+						<center><b>Créateur</b></center>
+					</td>
+					<td>
+						<center><b>Message</b></center>
+					</td>
+					<td>
+						<center><b>Vote associé</b></center>
+					</td>
+					<td>
+						<center><b>Supprimer</b></center>
+					</td>
+				</tr>
+				{% for item in commentaires %}
+					<tr>
+						<td>
+							<center>{{ item.dateCreation|date("d/m/y") }}</center>
+						</td>
+						<td>
+							<center>{{ item.utilisateur.login }}</center>
+						</td>
+						<td>
+							<center>{{ item.commentaire.texteCommentaire }}</center>
+						</td>
+						<td>
+							<center>{{ item.vote.nom }}</center>
+						</td>
+						<td>
+							<center>
+								<form action="{{ path('votenmasse_votenmasse_c_supprimer') }}" method="post">
+									<input type = "hidden" name = "commentaire_id" value = {{ item.identifier }} />
+									<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+								</form>
+							</center>
+						</td>
+					</tr>			
+				{% endfor %}
+			</table>
+		{% endif %}
+		{% if commentaires is null %}
+			<center>Aucun commentaire</center>
+		{% endif %}
 	  </div>
 	  <h3>Gestion des inscriptions</h3>
-	  <div>
-		<p>
-			<table class="table">
-				<tr>
-					<td>
-						<div class="well">
-							Gestion des inscriptions ici
-						</div>
-					</td>
-				</tr>
-			</table>
-		</p>
-	  </div>
+	  	<div>
+			<p>
+				<table class="table">
+					{% if utilisateurs_en_moderation is not null %}
+						{% if inscrip is sameas("Sous modération") %}
+							<tr>
+								<td>
+									<center><b>Login</b></center>
+								</td>
+								<td>
+									<center><b>Nom</b></center>
+								</td>
+								<td>
+									<center><b>Prenom</b></center>
+								</td>
+								<td>
+									<center><b>Mail</b></center>
+								</td>
+								<td>
+									<center><b>Accepter</b></center>
+								</td>
+								<td>
+									<center><b>Refuser</b></center>
+								</td>
+							</tr>
+							{% for utilisateur in utilisateurs_en_moderation %}
+								<tr>
+									<td>
+										<center>
+											{{ utilisateur.login }}
+										</center>
+									</td>
+									<td>
+										<center>
+											{{ utilisateur.nom }} 
+										</center>
+									</td>
+									<td>
+										<center>
+											{{ utilisateur.prenom }} 
+										</center>
+									</td>
+									<td>
+										<center>
+											{{ utilisateur.mail }} 
+										</center>
+									</td>
+									<td>
+										<form action="{{  path('votenmasse_votenmasse_moderation_accepter_utilisateur', { 'log': utilisateur.login }) }}" method="post">
+											<center>
+												<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-ok"></i> </button>
+											</center>
+										</form>
+									</td>
+									<td>
+										<form action="{{ path('votenmasse_votenmasse_moderation_supprimer_utilisateur', { 'log': utilisateur.login }) }}" method="post">
+											<center>
+												<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-remove"></i> </button>
+											</center>
+										</form>
+									</td>
+								</tr>
+							{% endfor %}
+						{% endif %}
+					{% endif %}
+					<div align = "center" class = "well">
+						<p>
+							<ul class="nav nav-pills nav-stacked">
+								<li>
+								  <div id="radio">
+									{% if inscrip is sameas("Ouvertes") %}
+										<input type="radio" onClick='chgpage1()' id="radio1" name="radio" checked="checked"><label for="radio1">Ouvertes</label>
+									{% else %}
+										<input type="radio" onClick='chgpage1()' id="radio1" name="radio"><label for="radio1">Ouvertes</label>
+									{% endif %}
+									{% if inscrip is sameas("Sous modération") %}
+										<input type="radio" onClick='chgpage2()' id="radio2" name="radio" checked="checked"><label for="radio2">Sous modération</label>
+									{% else %}
+										<input type="radio" onClick='chgpage2()' id="radio2" name="radio"><label for="radio2">Sous modération</label>
+									{% endif %}
+									{% if inscrip is sameas("Fermées") %}
+										<input type="radio" onClick='chgpage3()' id="radio3" name="radio"  checked="checked"><label for="radio3">Fermées</label>
+									{% else %}
+										<input type="radio" onClick='chgpage3()' id="radio3" name="radio"><label for="radio3">Fermées</label>
+									{% endif %}
+								 </div>
+								</li>
+							</ul>
+						</p>      
+					</div>
+				</table>
+			</p>
+		</div>
 	</div>
+			
 
 {% endblock %}

@@ -13,12 +13,47 @@ use Votenmasse\VotenmasseBundle\Entity\Commentaire;
 use Votenmasse\VotenmasseBundle\Entity\VoteCommentaireUtilisateur;
 use Votenmasse\VotenmasseBundle\Entity\DonnerAvis;
 use Votenmasse\VotenmasseBundle\Entity\UtilisateurVote;
+use Votenmasse\VotenmasseBundle\Entity\Inscription;
 
 class VotenmasseController extends Controller {
 
 	public function indexAction() {	
 		// On récupère les variables de session
 		$request = $this->get('request');
+		
+		$em = $this->getDoctrine()->getManager();
+		
+		$inscription = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+		
+		if ($inscription == NULL) {
+			$inscr = new Inscription;
+			
+			$inscr->setEtat("Ouvertes");
+			
+			$em->persist($inscr);
+			$em->flush();
+		}
+		else { 
+			if ($inscription->getEtat() == "Ouvertes") {
+				// On va valider tous les utilisateurs en attente (si avant nous étions sous modération ou fermées)
+				
+				$utilisateurs = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findAll();
+				
+				foreach ($utilisateurs as $cle => $valeur) {
+					if ($valeur->getAccepte() == false) {
+						$valeur->setAccepte(true);
+						
+						$em->persist($valeur);
+						$em->flush();
+					}
+				}
+			}
+		}
+		
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
 		$i = $session->get('invite');
@@ -496,8 +531,24 @@ class VotenmasseController extends Controller {
 		
 		// Si l'inscription est valide alors l'utilisateur vient de s'inscrire
 		if(!is_null($inscription_valide)) {
-			$session->remove('inscription_valide');
-			$message_inscription_valide = "Félicitation vous avez rejoins la communauté Votenmasse";
+			$ins=$this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+			if ($ins->getEtat()=='Fermées') {
+				$session->remove('inscription_valide');
+				$message_inscription_valide = "Désolé, les inscriptions sont momentanément fermées";
+			}
+			if ($ins->getEtat()=='Sous modération') {
+				$session->remove('inscription_valide');
+				$message_inscription_valide = "Les inscriptions sont actuellement sous modération. Un administrateur validera ou non votre demande sous peu.";
+			}
+			
+			if ($ins->getEtat()=='Ouvertes') {
+				$session->remove('inscription_valide');
+				$message_inscription_valide = "Félicitation vous avez rejoins la communauté Votenmasse";
+			}
+			
 		}
 		else {
 			$message_inscription_valide = NULL;
@@ -567,26 +618,42 @@ class VotenmasseController extends Controller {
 
 		  // On vérifie que les valeurs entrées sont correctes
 		  if ($form->isValid()) {
-			// On cripte le mot de passe ==> C'est pour ça qu'on ne voulait pas de suite enregistrer la valeur dans l'entité
+		  	$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+		  	if ($ins->getEtat() == 'Fermées') {
+		  		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+														  'form' => $form->createView(),
+														  'utilisateur' => $u,
+														  'last_vote' => $last_vote,
+														  'deja_vote' => $avis_existe_deja_pour_last_vote,
+														  'invite' => $invite,
+														  'erreur' => "Désolé, les inscriptions sont momentanément fermées."
+															));		
+		  	}
+		  	
 			$pass = $request->request->get("form")['motDePasse'];
-				
 			$pass_md5 = md5($pass);
-			
+		
 			$utilisateur->setMotDePasse($pass_md5);
-			$utilisateur->setAccepte(true);
-				
+			if ($ins->getEtat() == 'Sous modération') {
+				$utilisateur->setAccepte(false);
+			}
+			else if ($ins->getEtat()=='Ouvertes') {
+				$utilisateur->setAccepte(true);
+			}
+			
 			// On enregistre notre objet $utilisateur dans la base de données
-			$em = $this->getDoctrine()->getManager();
 			$em->persist($utilisateur);
 			$em->flush();
-			
+		
 			// On définit une variable de session pour indiquer lors du rappel de la route que l'utilisateur vient de s'inscrire
 			$session->set('inscription_valide', true); 
-			
+		
 			// On redirige vers la la page d'accueil
 			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
-		  }
-		}
+		  	}
+	    }
 
 		// À ce stade :
 		// - Soit la requête est de type GET, donc le visiteur vient d'arriver sur la page et veut voir le formulaire
@@ -1226,6 +1293,8 @@ class VotenmasseController extends Controller {
 	public function connexionAction() {
 		// On récupère la requête
 		$request = $this->get('request');
+		$session = $request->getSession();		
+		$i = $session->get('invite');
 
 		// On vérifie qu'elle est de type POST
 		if ($request->getMethod() == 'POST') {
@@ -1235,11 +1304,66 @@ class VotenmasseController extends Controller {
 			// On regarde si l'association login-motDePasse existe dans la base 
 			$utilisateur = $this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-						->findBy(array('login' => $request->request->get('login'),
+						->findOneBy(array('login' => $request->request->get('login'),
 										'motDePasse' => $pass));
+			
+			$last_vote = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findOneBy(array('type' => 'Vote public', 'groupeAssocie' => NULL), array('id' => 'desc'));
+		
+			$invite = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneByLogin($i);
+			
+			$avis_existe_deja_pour_last_vote = false;
+					
+			if ($invite != NULL) {
+				$req_avis_existe_deja_pour_last_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+					->findOneBy(array('utilisateur' => $invite, 'vote' => $last_vote));
+				
+					
+				if ($req_avis_existe_deja_pour_last_vote != NULL) {
+					$avis_existe_deja_pour_last_vote = true;
+				}
+				else {
+					$avis_existe_deja_pour_last_vote = false;
+				}
+			}
 		
 			// S'il existe on créé la variable de session de connexion
 			if ($utilisateur != NULL) {	
+				if ($utilisateur->getAccepte() == false) {
+					$utilisateur = new Utilisateur;
+
+					// On génère le formulaire d'inscription
+					$form = $this->createFormBuilder($utilisateur)
+								 ->add('nom', 'text')
+								 ->add('prenom', 'text', array(
+														'label' => 'Prénom'))
+								 ->add('dateDeNaissance', 'birthday')
+								 ->add('sexe', 'choice', array(
+															'choices' => array(
+																'H' => 'Homme',
+																'F' => "Femme"),
+															'multiple' => false,
+															'expanded' => false))
+								 ->add('login', 'text', array(
+														'label' => 'Pseudo'))
+								 ->add('motDePasse', 'password', array(
+															'mapped' => false)) // mapped = false ==> Ne pas enregistrer les données reçues dans l'entité
+								 ->add('mail', 'email')
+								 ->getForm();
+				
+					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+												  'form' => $form->createView(),
+												  'last_vote' => $last_vote,
+												  'deja_vote' => $avis_existe_deja_pour_last_vote,
+												  'invite' => $invite,
+												  'erreur' => "Désolé, votre inscription n'a pas été validée par un administrateur."
+													));	
+				}
+			
 				if ($request->getSession() != NULL) {
 					$session = $request->getSession();
 					if ($session->get('invite') != NULL) {
@@ -1259,7 +1383,34 @@ class VotenmasseController extends Controller {
 			}
 			// Sinon on redirige l'utilisateur vers la page de connexion
 			else {
-				return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+				$utilisateur = new Utilisateur;
+
+				// On génère le formulaire d'inscription
+				$form = $this->createFormBuilder($utilisateur)
+							 ->add('nom', 'text')
+							 ->add('prenom', 'text', array(
+													'label' => 'Prénom'))
+							 ->add('dateDeNaissance', 'birthday')
+							 ->add('sexe', 'choice', array(
+														'choices' => array(
+															'H' => 'Homme',
+															'F' => "Femme"),
+														'multiple' => false,
+														'expanded' => false))
+							 ->add('login', 'text', array(
+													'label' => 'Pseudo'))
+							 ->add('motDePasse', 'password', array(
+														'mapped' => false)) // mapped = false ==> Ne pas enregistrer les données reçues dans l'entité
+							 ->add('mail', 'email')
+							 ->getForm();
+			
+				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:index.html.twig', array(
+										  'form' => $form->createView(),
+										  'last_vote' => $last_vote,
+										  'deja_vote' => $avis_existe_deja_pour_last_vote,
+										  'invite' => $invite,
+										  'erreur' => "Pseudo ou mot de passe incorrect."
+											));	
 			}
 		}
 	
@@ -1302,10 +1453,55 @@ class VotenmasseController extends Controller {
 					->getRepository('VotenmasseVotenmasseBundle:Vote')
 					->findAll();
 					
-				foreach ($votes as $cle => $valeur) {
-					$createur = $valeur->getCreateur();
-						
-					$createurs[$cle] = $createur->getLogin();
+				$commentaires = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findAll();
+					
+				if ($commentaires == NULL) {
+					$commentaires = NULL;
+				}
+					
+				$createurs = NULL;	
+				
+				if ($votes != NULL) {
+					foreach ($votes as $cle => $valeur) {
+						$createur = $valeur->getCreateur();
+							
+						$createurs[$cle] = $createur->getLogin();
+					}
+				}
+				
+				if ($votes == NULL) {
+					$votes = NULL;
+				}
+				
+				if ($groupes == NULL) {
+					$groupes = NULL;
+				}
+				
+				if ($commentaires == NULL) {
+					$commentaires = NULL;
+				}
+			
+				$inscription = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Inscription')
+						->findOneById(1);
+				
+				$utilisateurs_en_moderation = NULL;
+				
+				if ($inscription == NULL) {
+					$inscr = new Inscription;
+			
+					$inscr->setEtat("Ouvertes");
+					
+					$em->persist($inscr);
+					$em->flush();
+				}
+				
+				if ($inscription->getEtat() == "Sous modération") {
+					$utilisateurs_en_moderation = $this->getDoctrine()
+						->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+						->findByAccepte(false);
 				}
 			
 				return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
@@ -1313,7 +1509,10 @@ class VotenmasseController extends Controller {
 					'utilisateurs' => $utilisateurs,
 					'groupes' => $groupes,
 					'votes' => $votes,
-					'vote_createurs' => $createurs));
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'utilisateurs_en_moderation' => $utilisateurs_en_moderation,
+					'inscrip' => $inscription->getEtat()));
 			}
 			else {
 				return $this->redirect($this->generateUrl('votenmasse_votenmasse_administration'));
@@ -10135,7 +10334,7 @@ class VotenmasseController extends Controller {
 				foreach ($commentaires_donnes as $cle => $valeur) {
 					$commentaires_a_supprimer = $this->getDoctrine()
 						->getRepository('VotenmasseVotenmasseBundle:Commentaire')
-						->findById($valeur->getCommentaire());
+						->findById($valeur->getCommentaire()->getIdentifier());
 				
 					$em->remove($valeur);
 					$em->flush();
@@ -10204,6 +10403,10 @@ class VotenmasseController extends Controller {
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
 		
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		// Membres et modos du groupe
 		$groupe_utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
@@ -10256,7 +10459,7 @@ class VotenmasseController extends Controller {
 					foreach ($commentaires_donnes as $key => $value) {
 						$commentaires_a_supprimer = $this->getDoctrine()
 							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
-							->findById($value->getCommentaire());
+							->findById($value->getCommentaire()->getIdentifier());
 					
 						$em->remove($value);
 						$em->flush();
@@ -10292,6 +10495,10 @@ class VotenmasseController extends Controller {
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
+		
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
@@ -10341,6 +10548,10 @@ class VotenmasseController extends Controller {
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
+		
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
@@ -10370,9 +10581,17 @@ class VotenmasseController extends Controller {
 		
 		$vote_id = (int)$request->request->get("vote_id");
 		
+		if ($vote_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findOneById($vote_id);
+		
+		if ($vote == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		// Modo de vote
 		$utilisateur_vote = $this->getDoctrine()
@@ -10409,7 +10628,7 @@ class VotenmasseController extends Controller {
 			foreach ($commentaires_donnes as $cle => $valeur) {
 				$commentaires_a_supprimer = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Commentaire')
-					->findById($valeur->getCommentaire());
+					->findById($valeur->getCommentaire()->getIdentifier());
 			
 				$em->remove($valeur);
 				$em->flush();
@@ -10441,13 +10660,25 @@ class VotenmasseController extends Controller {
 		
 		$utilisateur_id = (int)$request->request->get("membre_id");
 		
+		if ($utilsateur_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
 			
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}	
+			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 			->findOneById($utilisateur_id);
+		
+		if ($utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$em = $this->getDoctrine()->getManager();
 		
@@ -10503,7 +10734,7 @@ class VotenmasseController extends Controller {
 					foreach ($commentaires_donnes as $key => $value) {
 						$commentaires_a_supprimer = $this->getDoctrine()
 							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
-							->findById($value->getCommentaire());
+							->findById($value->getCommentaire()->getIdentifier());
 					
 						$em->remove($value);
 						$em->flush();
@@ -10560,7 +10791,7 @@ class VotenmasseController extends Controller {
 					foreach ($commentaires_donnes as $key => $value) {
 						$commentaires_a_supprimer = $this->getDoctrine()
 							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
-							->findById($value->getCommentaire());
+							->findById($value->getCommentaire()->getIdentifier());
 					
 						$em->remove($value);
 						$em->flush();
@@ -10588,13 +10819,25 @@ class VotenmasseController extends Controller {
 		
 		$utilisateur_id = (int)$request->request->get("membre_id");
 		
+		if ($utilisateur_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
 			
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 			->findOneById($utilisateur_id);
+			
+		if ($utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 		
 		$groupe_utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
@@ -10620,13 +10863,25 @@ class VotenmasseController extends Controller {
 		
 		$utilisateur_id = (int)$request->request->get("membre_id");
 		
+		if ($utilisateur_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$groupe = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Groupe')
 			->findOneById($groupe_id);
+		
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 			->findOneById($utilisateur_id);
+		
+		if ($utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}	
 		
 		$groupe_utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
@@ -10792,13 +11047,25 @@ class VotenmasseController extends Controller {
 			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 		
+		if($utilisateur_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}	
+		
 		$vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findOneById($vote_id);
 			
+		if ($vote == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 			->findOneById($utilisateur_id);
+		
+		if ($utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 		
 		$utilisateur_vote = new UtilisateurVote();
 		$utilisateur_vote->setUtilisateur($utilisateur);
@@ -10820,16 +11087,28 @@ class VotenmasseController extends Controller {
 		$utilisateur_id = $request->request->get("membre_id");
 		
 		if ($vote_id == NULL) {
-			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		if ($utilisateur_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 		
 		$vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findOneById($vote_id);
+		
+		if ($vote == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
 			->findOneById($utilisateur_id);
+		
+		if ($utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$utilisateur_vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
@@ -10850,17 +11129,36 @@ class VotenmasseController extends Controller {
 		$vote_id = $request->request->get("vote_id");
 		$commentaire_id = $request->request->get("commentaire_id");
 		
+		if ($vote_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		if ($commentaire_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
 		$vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findOneById($vote_id);
 			
+		if ($vote == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+			
 		$commentaire = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Commentaire')
 			->findOneById($commentaire_id);
+		
+		if ($commentaire == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		$vote_commentaire_utilisateur = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
 			->findOneBy(array('commentaire' => $commentaire, 'vote' => $vote));
+		
+		if ($vote_commentaire_utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 		
 		$em = $this->getDoctrine()->getManager();
 		$em->remove($vote_commentaire_utilisateur);
@@ -10877,12 +11175,16 @@ class VotenmasseController extends Controller {
 		$vote_id = $request->request->get("vote_id");
 		
 		if ($vote_id == NULL) {
-			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
 		}
 		
 		$vote = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:Vote')
 			->findOneById($vote_id);
+		
+		if ($vote == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
 			
 		// Modo de vote
 		$utilisateur_vote = $this->getDoctrine()
@@ -10919,7 +11221,7 @@ class VotenmasseController extends Controller {
 			foreach ($commentaires_donnes as $cle => $valeur) {
 				$commentaires_a_supprimer = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Commentaire')
-					->findById($valeur->getCommentaire());
+					->findById($valeur->getCommentaire()->getIdentifier());
 			
 				$em->remove($valeur);
 				$em->flush();
@@ -10938,5 +11240,894 @@ class VotenmasseController extends Controller {
 		$vote_id = (int)$vote_id;
 		
 		return $this->redirect($this->generateUrl('votenmasse_votenmasse_vote_moderer', array('vote_id' => $vote_id)));
+	}
+	
+	public function moderationSupprimerAction($log = null) {
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		$em = $this->getDoctrine()->getManager();
+		
+		$uti = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneBylogin($log);
+					
+		if ($uti == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+					
+		$em->remove($uti);
+		$em->flush();
+		
+
+		/////////////////////////
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+		$et = $ins->getEtat();
+
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte"=>true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte"=>false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+				
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+			
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+			
+		$createurs = NULL;
+			
+		if ($votes != NULL) {	
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+				
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation'=>$utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip'=>$et));
+	}
+
+	public function moderationAccepterAction($log = null) {
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		$em = $this->getDoctrine()->getManager();
+		
+		$uti = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findOneBylogin($log);
+		
+		if ($uti == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+					
+		$uti->setAccepte(true);
+		$em->persist($uti);
+		$em->flush();
+
+		/////////////////////////
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+		$et = $ins->getEtat();
+		
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+				
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+			
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+				
+		$createurs = NULL;		
+			
+		if ($votes != NULL) {
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+				
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation'=>$utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip'=>$et));
+	}
+	
+	public function moderationAction($etat = NULL) {
+		//$etat est passé en parametre depuis la vue
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+		
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+		
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+			
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+				
+		$createur = NULL;		
+					
+		if ($votes != NULL) {			
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+		
+		$ins_etat = $ins->getEtat();
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+		
+		if ($etat == NULL || $ins_etat == $etat) {
+			
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation' => $utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip' => $ins_etat));
+		}
+		else {
+			$em = $this->getDoctrine()->getManager();
+			
+			if ($etat == "Ouvertes") {
+				// On va valider tous les utilisateurs en attente (si avant nous étions sous modération ou fermées)
+				
+				$utilisateurs = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+				->findAll();
+				
+				foreach ($utilisateurs as $cle => $valeur) {
+					if ($valeur->getAccepte() == false) {
+						$valeur->setAccepte(true);
+						
+						$em->persist($valeur);
+						$em->flush();
+					}
+				}
+			}
+			
+			$ins->setEtat($etat);
+			$em->persist($ins);
+			$em->flush();
+			
+			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation' => $utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip' => $etat));
+		}
+		
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+				'connecte' => true,
+				'utilisateurs' => $utilisateurs,
+				'utilisateurs_en_moderation' => $utilisateurs_en_moderation,
+				'groupes' => $groupes,
+				'votes' => $votes,
+				'commentaires' => $commentaires,
+				'vote_createurs' => $createurs,
+				'inscrip'=>$ins_etat));
+	
+	
+	}
+	
+	public function bannirAction() {
+		$request = $this->get('request');
+		
+		$utilisateur_id = $request->request->get("membre_id");
+		
+		if ($utilisateur_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+			
+		$utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+			->findOneById($utilisateur_id);
+		
+		if ($utilisateur == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+			
+		$em = $this->getDoctrine()->getManager();
+		
+		// Des groupes où il est utilisateur
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findByUtilisateur($utilisateur);
+		
+		if ($groupe_utilisateur != NULL) {
+			foreach ($groupe_utilisateur as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Des votes qu'il a créé
+		$votes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findByCreateur($utilisateur);
+		
+		if ($votes != NULL) {
+			foreach ($votes as $cle => $valeur) {
+				// Modérateur des votes où il est administrateur
+				$utilisateur_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+					->findByVote($valeur);
+					
+				if ($utilisateur_vote != NULL) {
+					foreach ($utilisateur_vote as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Avis donnés sur les votes où il est administrateur
+				$avis_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+					->findByVote($valeur);
+				
+				if ($avis_donnes != NULL) {
+					foreach ($avis_donnes as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Commentaires donnés sur les votes où il est administrateur
+				$commentaires_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findByVote($valeur);
+				
+				if ($commentaires_donnes != NULL) {
+					foreach ($commentaires_donnes as $key => $value) {
+						$commentaires_a_supprimer = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+							->findById($value->getCommentaire()->getIdentifier());
+					
+						$em->remove($value);
+						$em->flush();
+					}
+					
+					foreach ($commentaires_a_supprimer as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+			
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+
+		// Modo de vote
+		$utilisateur_vote = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+			->findByUtilisateur($utilisateur);
+			
+		if ($utilisateur_vote != NULL) {
+			foreach ($utilisateur_vote as $key => $value) {
+				$em->remove($value);
+				$em->flush();
+			}
+		}
+		
+		// Avis donnés
+		$avis_donnes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+			->findByUtilisateur($utilisateur);
+		
+		if ($avis_donnes != NULL) {
+			foreach ($avis_donnes as $key => $value) {
+				$em->remove($value);
+				$em->flush();
+			}
+		}
+		
+		// Commentaires donnés
+		$commentaires_donnes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+			->findByUtilisateur($utilisateur);
+		
+		if ($commentaires_donnes != NULL) {
+			foreach ($commentaires_donnes as $key => $value) {
+				$commentaires_a_supprimer = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+					->findById($value->getCommentaire()->getIdentifier());
+			
+				$em->remove($value);
+				$em->flush();
+			}
+			
+			foreach ($commentaires_a_supprimer as $key => $value) {
+				$em->remove($value);
+				$em->flush();
+			}
+		}
+		
+		// L'utilisateur lui-même
+		$em->remove($utilisateur);
+		$em->flush();
+		
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+		$et = $ins->getEtat();
+		
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+				
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+					
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+				
+		$createurs = NULL;		
+			
+		if ($votes != NULL) {
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+				
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation'=>$utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip'=>$et));
+	}
+	
+	public function gSupprimerAction() {
+		$request = $this->get('request');
+		
+		$groupe_id = $request->request->get("groupe_id");
+		
+		if ($groupe_id == NULL) {
+			$this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+				
+		$em = $this->getDoctrine()->getManager();	
+		
+		$groupe = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Groupe')
+			->findOneById($groupe_id);
+		
+		if ($groupe == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		// Membres et modos du groupe
+		$groupe_utilisateur = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
+			->findByGroupe($groupe);
+		
+		if ($groupe_utilisateur != NULL) {
+			foreach ($groupe_utilisateur as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Votes associés
+		$votes_associes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findByGroupeAssocie($groupe);
+		
+		if ($votes_associes != NULL) {
+			foreach ($votes_associes as $cle => $valeur) {
+				// Modo de vote
+				$utilisateur_vote = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+					->findByVote($valeur);
+					
+				if ($utilisateur_vote != NULL) {
+					foreach ($utilisateur_vote as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Avis donnés
+				$avis_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+					->findByVote($valeur);
+				
+				if ($avis_donnes != NULL) {
+					foreach ($avis_donnes as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+				
+				// Commentaires donnés
+				$commentaires_donnes = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+					->findByVote($valeur);
+				
+				if ($commentaires_donnes != NULL) {
+					foreach ($commentaires_donnes as $key => $value) {
+						$commentaires_a_supprimer = $this->getDoctrine()
+							->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+							->findById($value->getCommentaire()->getIdentifier());
+					
+						$em->remove($value);
+						$em->flush();
+					}
+					
+					foreach ($commentaires_a_supprimer as $key => $value) {
+						$em->remove($value);
+						$em->flush();
+					}
+				}
+			
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Le groupe lui-même
+		$em->remove($groupe);
+		$em->flush();
+		
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+		$et = $ins->getEtat();
+		
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+		
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+				
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+				
+		$createurs = NULL;		
+			
+		if ($votes != NULL) {
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+				
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation'=>$utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip'=>$et));
+	}
+	
+	public function vSupprimerAction() {
+		$request = $this->get('request');
+		
+		$vote_id = (int)$request->request->get("vote_id");
+		
+		if ($vote_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		$vote = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Vote')
+			->findOneById($vote_id);
+		
+		if ($vote == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+			
+		// Modo de vote
+		$utilisateur_vote = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:UtilisateurVote')
+			->findByVote($vote);
+		
+		$em = $this->getDoctrine()->getManager();
+			
+		if ($utilisateur_vote != NULL) {
+			foreach ($utilisateur_vote as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Avis donnés
+		$avis_donnes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:DonnerAvis')
+			->findByVote($vote);
+		
+		if ($avis_donnes != NULL) {
+			foreach ($avis_donnes as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+		
+		// Commentaires donnés
+		$commentaires_donnes = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+			->findByVote($vote);
+		
+		if ($commentaires_donnes != NULL) {
+			foreach ($commentaires_donnes as $cle => $valeur) {
+				$commentaires_a_supprimer = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+					->findById($valeur->getCommentaire()->getIdentifier());
+			
+				$em->remove($valeur);
+				$em->flush();
+			}
+			
+			foreach ($commentaires_a_supprimer as $cle => $valeur) {
+				$em->remove($valeur);
+				$em->flush();
+			}
+		}
+	
+		// Le vote lui-même
+		$em->remove($vote);
+		$em->flush();
+		
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+		$et = $ins->getEtat();
+		
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+				
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+					
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+				
+		$createurs = NULL;		
+			
+		if ($votes != NULL) {
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+				
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation'=>$utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip'=>$et));
+	}
+	
+	public function cSupprimerAction() {
+		$request = $this->get('request');
+		
+		$em = $this->getDoctrine()->getManager();
+		
+		$commentaire_id = (int)$request->request->get("commentaire_id");
+		
+		if ($commentaire_id == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		$commentaire = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+			->findOneByIdentifier($commentaire_id);
+		
+		if ($commentaire == NULL) {
+			return $this->redirect($this->generateUrl('votenmasse_votenmasse_index'));
+		}
+		
+		// Le VoteCommentaireUtilisateur
+		$em->remove($commentaire);
+		$em->flush();
+		
+		$commentaire_a_supprimer = $this->getDoctrine()
+			->getRepository('VotenmasseVotenmasseBundle:Commentaire')
+			->findOneById($commentaire->getIdentifier());
+	
+		$em->remove($commentaire_a_supprimer);
+		$em->flush();
+		
+		$ins = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Inscription')
+				->findOneById(1);
+				
+		$et = $ins->getEtat();
+		
+		$utilisateurs = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => true));
+					
+		$utilisateurs_en_moderation = $this->getDoctrine()
+					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
+					->findBy(array("accepte" => false));
+					
+		$groupes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findAll();
+					
+		$votes = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Vote')
+				->findAll();
+				
+		$commentaires = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:VoteCommentaireUtilisateur')
+				->findAll();
+					
+		if ($commentaires == NULL) {
+			$commentaires = NULL;
+		}
+				
+		$createurs = NULL;		
+			
+		if ($votes != NULL) {
+			foreach ($votes as $cle => $valeur) {
+				$createur = $valeur->getCreateur();
+						
+				$createurs[$cle] = $createur->getLogin();
+			}
+		}
+		
+		if ($utilisateurs == NULL) {
+			$utilisateurs = NULL;
+		}
+		
+		if ($utilisateurs_en_moderation == NULL) {
+			$utilisateurs_en_moderation = NULL;
+		}
+		
+		if ($groupes == NULL) {
+			$groupes = NULL;
+		}
+		
+		if ($votes == NULL) {
+			$votes = NULL;
+		}
+				
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:administration.html.twig', array(
+					'connecte' => true,
+					'utilisateurs' => $utilisateurs,
+					'utilisateurs_en_moderation'=>$utilisateurs_en_moderation,
+					'groupes' => $groupes,
+					'votes' => $votes,
+					'commentaires' => $commentaires,
+					'vote_createurs' => $createurs,
+					'inscrip'=>$et));
 	}
 }

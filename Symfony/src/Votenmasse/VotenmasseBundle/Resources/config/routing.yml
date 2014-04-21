@@ -149,3 +149,11 @@ votenmasse_votenmasse_c_supprimer:
 votenmasse_votenmasse_aide:
   pattern: /aide
   defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:aide }
+
+votenmasse_votenmasse_a_propos:
+  pattern: /a_propos
+  defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:aPropos }
+
+votenmasse_votenmasse_developpeurs:
+  pattern: /developpeurs
+  defaults: { _controller: VotenmasseVotenmasseBundle:Votenmasse:developpeurs }

@@ -1,0 +1,22 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Developpeurs
+{% endblock %}
+
+{% block votenmasse_body %}
+	<tr>
+		<td>
+			<div class="well">
+				<center>
+					Votenmasse est conçu par deux étudiants en Licence Informatique de la faculté des Sciences de Montpellier<br><br>
+					<h4><b>Brisset Fabien</b></h4><br>
+					<a href = "http://fabien34090.host56.com/PortFolio/index.php" target = "blank"><img src="{{ asset('img/Fabien.jpg') }}" /></a>
+					<br><br><br>
+					<h4><b>Sako Sidiki</b></h4><br>
+					<img src="{{ asset('img/Sidiki.jpg') }}" />
+				</center>
+			</div>
+		</td>
+	</tr>
+{% endblock %}

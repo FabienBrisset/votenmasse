@@ -18,91 +18,95 @@
 					<div id="accordion">
 						<h3>Gérer les modérateurs</h3>
 						<div>
-							<table align = "center">
-								<tr>
-									<td>
-										<center><b>Nom</b></center>
-									</td>
-									<td>
-										<center><b>Prénom</b></center>
-									</td>
-									<td>
-										<center><b>Login</b></center>
-									</td>
-									<td>
-										<center><b>Statut</b></center>
-									</td>
-									{% if add_moderators is defined %}
-										{% if add_moderators is sameas(true) %}
+							{% if moderateurs is not null or liste_utilisateurs is not null %}
+								<table align = "center">
+									<tr>
+										<td>
+											<center><b>Nom</b></center>
+										</td>
+										<td>
+											<center><b>Prénom</b></center>
+										</td>
+										<td>
+											<center><b>Login</b></center>
+										</td>
+										<td>
+											<center><b>Statut</b></center>
+										</td>
+										{% if add_moderators is defined %}
+											{% if add_moderators is sameas(true) %}
+												<td>
+													<center><b>Privilégier</b></center>
+												</td>
+											{% endif %}
+										{% endif %}
+									</tr>
+									{% for moderateur in moderateurs %}
+										<tr>
 											<td>
-												<center><b>Privilégier</b></center>
+												<center>{{ moderateur.nom }}</center>
 											</td>
-										{% endif %}
-									{% endif %}
-								</tr>
-								{% for moderateur in moderateurs %}
-									<tr>
-										<td>
-											<center>{{ moderateur.nom }}</center>
-										</td>
-										<td>
-											<center>{{ moderateur.prenom }} </center>
-										</td>
-										<td>
-											<center>{{ moderateur.login }}</center>
-										</td>
-										<td>
-											<center>			
-												Modérateur
-											</center>
-										</td>
-										{% if add_moderators is defined %}
-											{% if add_moderators is sameas(true) %}
-												<td>
-													<center>
-														<form action="{{ path('votenmasse_votenmasse_vote_supprimer_moderateur') }}" method="post">
-															<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
-															<input type = "hidden" name = "membre_id" value = {{ moderateur.id }} />
-															<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-minus"></i> </button>
-														</form>
-													</center>
-												</td>
-											{% endif %}					
-										{% endif %}
-									</tr>
-								{% endfor %}
-								{% for utilisateur in liste_utilisateurs %}
-									<tr>
-										<td>
-											<center>{{ utilisateur.nom }}</center>
-										</td>
-										<td>
-											<center>{{ utilisateur.prenom }} </center>
-										</td>
-										<td>
-											<center>{{ utilisateur.login }}</center>
-										</td>
-										<td>
-											<center>			
-												Membre
-											</center>
-										</td>
-										{% if add_moderators is defined %}
-											{% if add_moderators is sameas(true) %}
-												<td>
-													<center>
-														<form action="{{ path('votenmasse_votenmasse_vote_ajouter_moderateur') }}" method="post">
-															<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
-															<input type = "hidden" name = "membre_id" value = {{ utilisateur.id }} />
-															<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-plus"></i> </button>
-														</form>
-													</center>
-												</td>
-											{% endif %}					
-										{% endif %}
-									</tr>
-								{% endfor %}
-							</table>
+											<td>
+												<center>{{ moderateur.prenom }} </center>
+											</td>
+											<td>
+												<center>{{ moderateur.login }}</center>
+											</td>
+											<td>
+												<center>			
+													Modérateur
+												</center>
+											</td>
+											{% if add_moderators is defined %}
+												{% if add_moderators is sameas(true) %}
+													<td>
+														<center>
+															<form action="{{ path('votenmasse_votenmasse_vote_supprimer_moderateur') }}" method="post">
+																<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
+																<input type = "hidden" name = "membre_id" value = {{ moderateur.id }} />
+																<button class="btn btn-danger btn-mini" type="submit"><i class="icon-white icon-minus"></i> </button>
+															</form>
+														</center>
+													</td>
+												{% endif %}					
+											{% endif %}
+										</tr>
+									{% endfor %}
+									{% for utilisateur in liste_utilisateurs %}
+										<tr>
+											<td>
+												<center>{{ utilisateur.nom }}</center>
+											</td>
+											<td>
+												<center>{{ utilisateur.prenom }} </center>
+											</td>
+											<td>
+												<center>{{ utilisateur.login }}</center>
+											</td>
+											<td>
+												<center>			
+													Membre
+												</center>
+											</td>
+											{% if add_moderators is defined %}
+												{% if add_moderators is sameas(true) %}
+													<td>
+														<center>
+															<form action="{{ path('votenmasse_votenmasse_vote_ajouter_moderateur') }}" method="post">
+																<input type = "hidden" name = "vote_id" value = {{ vote_id }} />
+																<input type = "hidden" name = "membre_id" value = {{ utilisateur.id }} />
+																<button class="btn btn-success btn-mini" type="submit"><i class="icon-white icon-plus"></i> </button>
+															</form>
+														</center>
+													</td>
+												{% endif %}					
+											{% endif %}
+										</tr>
+									{% endfor %}
+								</table>
+							{% else %}
+								Aucun utilisateur
+							{% endif %}
 						</div>
 						<h3>Gérer les commentaires</h3>
 						<div>

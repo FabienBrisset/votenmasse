@@ -1427,6 +1427,7 @@ class VotenmasseController extends Controller {
 		$request = $this->get('request');
 		$session = $request->getSession();		
 		$u = $session->get('utilisateur');
+		$em = $this->getDoctrine()->getManager();
 		
 		// Si l'utilisateur est connecté alors il n'est pas administrateur du site donc on le redirige vers la page d'accueil
 		if ($u != NULL) {
@@ -1438,7 +1439,7 @@ class VotenmasseController extends Controller {
 			if (($request->request->get('mot_de_passe') == 'abcde98765') || ($request->request->get('connecte') == true)) {
 				$utilisateurs = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Utilisateur')
-					->findAll();
+					->findByAccepte(true);
 					
 				$groupes = $this->getDoctrine()
 					->getRepository('VotenmasseVotenmasseBundle:Groupe')
@@ -1464,6 +1465,10 @@ class VotenmasseController extends Controller {
 							
 						$createurs[$cle] = $createur->getLogin();
 					}
+				}
+				
+				if ($utilisateurs == NULL) {
+					$utilisateurs = NULL;
 				}
 				
 				if ($votes == NULL) {
@@ -11005,20 +11010,21 @@ class VotenmasseController extends Controller {
 		
 		$liste_utilisateurs_finale = NULL;
 		
-	
-		foreach ($liste_utilisateurs as $cle => $valeur) {
-			$is_moderator = false;
-			
-			if ($moderateurs != NULL) {
-				foreach ($moderateurs as $key => $value) {
-					if ($valeur == $value) {
-						$is_moderator = true;
+		if ($liste_utilisateurs != NULL) {
+			foreach ($liste_utilisateurs as $cle => $valeur) {
+				$is_moderator = false;
+				
+				if ($moderateurs != NULL) {
+					foreach ($moderateurs as $key => $value) {
+						if ($valeur == $value) {
+							$is_moderator = true;
+						}
 					}
 				}
-			}
-			
-			if ($is_moderator == false) {
-				$liste_utilisateurs_finale[] = $valeur;
+				
+				if ($is_moderator == false) {
+					$liste_utilisateurs_finale[] = $valeur;
+				}
 			}
 		}
 		
@@ -11440,7 +11446,7 @@ class VotenmasseController extends Controller {
 			$commentaires = NULL;
 		}
 				
-		$createur = NULL;		
+		$createurs = NULL;		
 					
 		if ($votes != NULL) {			
 			foreach ($votes as $cle => $valeur) {
@@ -12129,5 +12135,13 @@ class VotenmasseController extends Controller {
 	
 	public function aideAction() {
 		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:aide.html.twig');
+	}
+	
+	public function aProposAction() {
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:a_propos.html.twig');
+	}
+	
+	public function developpeursAction() {
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:developpeurs.html.twig');
 	}
 }

@@ -1,0 +1,42 @@
+{% extends "VotenmasseVotenmasseBundle::layout.html.twig" %}
+
+{% block title %}
+ {{ parent() }} - Aide
+{% endblock %}
+
+{% block votenmasse_body %}
+	<tr>
+		<td>
+			<div class="well">
+				<b>Les types de votes et de groupes</b><br>
+				<img src = "{{ asset('img/pub.png') }}" alt = "Public" /> Ce logo signifie que le vote ou le groupe est public (accessible à tous) <br>
+				<img src = "{{ asset('img/rai.png') }}" alt = "Réservé aux inscrits" /> Ce logo signifie que le vote ou le groupe est réservé aux inscrits <br>
+				<img src = "{{ asset('img/pri.png') }}" alt = "Privé" /> Ce logo signifie que le vote ou le groupe est privé (vous devez être membre du groupe)<br><br>
+				<b>Le forum</b><br>
+				Cet espace du site est utilisé pour commenter les différents votes, tous les utilisateurs, inscrits ou non, peuvent commenter des votes à partir
+				de cet espace, les invités ne peuvent commenter que les votes publics<br><br>
+				<b>Les inscriptions</b><br>
+				Si le nombre d'utilisateurs est trop important, les administrateurs peuvent fermer les inscriptions ou les ouvrir sous modération, dans ce dernier
+				cas vous pourrez vous inscrire sur Votenmasse mais devrez attendre l'acceptation ou non de votre inscription par un administrateur du site avant de
+				 pouvoir vous connecter<br><br>
+				<b>Les invités/utilisateurs inscrits</b><br>
+				Les invités peuvent participer aux votes publics, intégrer des groupes publics, commenter des votes publics<br>
+				Les utilisateurs eux, peuvent faire cela mais aussi, peuvent créer des votes, des groupes publics, réservés aux inscrits et privés<br>
+				Ils peuvent aussi intégrer tous types de groupes<br><br>
+				<b>Les modérateurs de votes</b><br>
+				Les créateurs de votes peuvent nommer ou destituer des modérateurs de votes, ces derniers peuvent comme le créateur d'un vote supprimer des commentaires<br>
+				Seul le créateur d'un vote peut supprimer un vote<br><br>
+				<b>Les modérateurs de groupes</b><br>
+				Les administrateurs de groupes peuvent nommer ou destituer des modérateurs de groupes, ces derniers, peuvent comme l'administrateur, gérer les votes
+				au sein du groupe, accepter ou non les demandes des utilisateurs à rejoindre le groupe, ajouter des utilisateurs au groupe<br>
+				Seul l'administrateur du groupe peut le supprimer<br><br>
+				<b>Le résultat des votes</b><br>
+				Il est calculé à partir du nombre de voix pour un choix à une certaine place, par exemple si le choix 3 "Mon exemple" est le plus donné comme choix classé
+				numéro 1 (à la première place) alors celui-ci est premier du classement et ainsi de suite pour le choix classé numéro 2, 3 ...<br><br>
+				<b>Groupe réservé aux inscrits / Groupe privé</b><br>
+				Les groupes privés nécessitent la validation des modérateurs ou de l'administrateur du groupe pour rejoindre le groupe<br>
+				Les groupes réservés aux inscrits, eux, acceptent automatiquement les demandes pour rejoindre le groupe
+			</div>
+		</td>
+	</tr>
+{% endblock %}

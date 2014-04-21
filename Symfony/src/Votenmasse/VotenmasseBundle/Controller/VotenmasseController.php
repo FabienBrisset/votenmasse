@@ -689,19 +689,14 @@ class VotenmasseController extends Controller {
 		$groupesUtilisateur_utilisateur_courant = $this->getDoctrine()
 			->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
 			->findByUtilisateur($infos_utilisateur->getId());
+			
+		$groupes_utilisateur_courant = array();
 		
 		// Pour tous les Groupes dont l'utilisateur courrant est membre on les ajoute à la liste des groupes à afficher
 		foreach ($groupesUtilisateur_utilisateur_courant as $cle => $valeur) {
-			if (isset($groupes_utilisateur_courant)) {
-				$groupes_utilisateur_courant += $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findById($valeur->getGroupe());
-			}
-			else {
-				$groupes_utilisateur_courant = $this->getDoctrine()
-					->getRepository('VotenmasseVotenmasseBundle:Groupe')
-					->findById($valeur->getGroupe());
-			}
+			$groupes_utilisateur_courant[] = $this->getDoctrine()
+				->getRepository('VotenmasseVotenmasseBundle:Groupe')
+				->findById($valeur->getGroupe());
 		}
 		
 		// S'il y a des groupes où l'utilisateur est administrateur on les ajoute à la liste des groupes à afficher
@@ -713,19 +708,19 @@ class VotenmasseController extends Controller {
 			$taille_groupes_utilisateur_ou_ajouter = sizeof($groupes_utilisateur_courant);	
 				
 			foreach ($groupes_utilisateur_courant_a_ajouter as $cle => $valeur) {
-				$groupes_utilisateur_courant[$taille_groupes_utilisateur_ou_ajouter] = $valeur;
+				$groupes_utilisateur_courant[$taille_groupes_utilisateur_ou_ajouter] = array($valeur);
 				$taille_groupes_utilisateur_ou_ajouter++;
 			}
 		}
 		else {
-			$groupes_utilisateur_courant = $this->getDoctrine()
+			$groupes_utilisateur_courant[] = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:Groupe')
 				->findByAdministrateur($infos_utilisateur);
 		}
 		
 		if ($groupes_utilisateur_courant != NULL) {
 			for ($i = 0; $i<sizeof($groupes_utilisateur_courant); $i++) {
-				$groupes[$groupes_utilisateur_courant[$i]->getNom()] = $groupes_utilisateur_courant[$i]->getNom();
+				$groupes[$groupes_utilisateur_courant[$i][0]->getNom()] = $groupes_utilisateur_courant[$i][0]->getNom();
 			}
 		}
 		else {
@@ -10178,10 +10173,12 @@ class VotenmasseController extends Controller {
 				$demande->setGroupe($groupe_infos);
 				$demande->setUtilisateur($utilisateur);
 				$demande->setModerateur(false);
-				$demande->setAccepte(false);
-				
-				if ($request->request->get('message_rejoindre_groupe') != "    ") {
+				if ($groupe_infos->getEtat() == "Groupe privé") {
+					$demande->setAccepte(false);
 					$demande->setMessage($request->request->get('message_rejoindre_groupe'));
+				}
+				else {
+					$demande->setAccepte(true);
 				}
 				
 				$em = $this->getDoctrine()->getManager();
@@ -10259,11 +10256,7 @@ class VotenmasseController extends Controller {
 			$demande->setGroupe($groupe_infos);
 			$demande->setUtilisateur($invite);
 			$demande->setModerateur(false);
-			$demande->setAccepte(false);
-			
-			if ($request->request->get('message_rejoindre_groupe') != NULL) {
-				$demande->setMessage($request->request->get('message_rejoindre_groupe'));
-			}
+			$demande->setAccepte(true);
 			
 			$em = $this->getDoctrine()->getManager();
 			$em->persist($demande);
@@ -10970,12 +10963,14 @@ class VotenmasseController extends Controller {
 		else {
 			$groupe_utilisateurs = $this->getDoctrine()
 				->getRepository('VotenmasseVotenmasseBundle:GroupeUtilisateur')
-				->findByModerateur(false);
+				->findBy(array("moderateur" => false, "groupe" => $groupe_associe));
 			
-			foreach ($groupe_utilisateurs as $cle => $valeur) {
-				if ($valeur->getUtilisateur() != $utilisateur) {
-					if (preg_match("/Invité/", $valeur->getUtilisateur()->getLogin()) == false) {
-						$liste_utilisateurs[] = $valeur->getUtilisateur();
+			if ($groupe_utilisateurs != NULL) {
+				foreach ($groupe_utilisateurs as $cle => $valeur) {
+					if ($valeur->getUtilisateur() != $utilisateur) {
+						if (preg_match("/Invité/", $valeur->getUtilisateur()->getLogin()) == false) {
+							$liste_utilisateurs[] = $valeur->getUtilisateur();
+						}
 					}
 				}
 			}
@@ -11010,19 +11005,20 @@ class VotenmasseController extends Controller {
 		
 		$liste_utilisateurs_finale = NULL;
 		
-		if ($moderateurs != NULL) {
-			foreach ($liste_utilisateurs as $cle => $valeur) {
-				$is_moderator = false;
-				
+	
+		foreach ($liste_utilisateurs as $cle => $valeur) {
+			$is_moderator = false;
+			
+			if ($moderateurs != NULL) {
 				foreach ($moderateurs as $key => $value) {
 					if ($valeur == $value) {
 						$is_moderator = true;
 					}
 				}
-				
-				if ($is_moderator == false) {
-					$liste_utilisateurs_finale[] = $valeur;
-				}
+			}
+			
+			if ($is_moderator == false) {
+				$liste_utilisateurs_finale[] = $valeur;
 			}
 		}
 		
@@ -12129,5 +12125,9 @@ class VotenmasseController extends Controller {
 					'commentaires' => $commentaires,
 					'vote_createurs' => $createurs,
 					'inscrip'=>$et));
+	}
+	
+	public function aideAction() {
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:aide.html.twig');
 	}
 }

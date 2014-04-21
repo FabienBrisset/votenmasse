@@ -21,7 +21,9 @@
 								{% if groupe_associe is not null %}
 									<h5 align = "center">{{ groupe_associe.nom }}</h5><br>
 								{% endif %}
-								<font color = "red">Classez par ordre préférentiel les différentes propositions</font><br><br>
+								{% if nb is defined %}
+									<font color = "red" style = "font-size: small;">Classez par ordre préférentiel les différentes propositions (de 1 à {{ nb }})</font><br><br>
+								{% endif %}
 							</center>
 							<table>
 								<tr>

@@ -2639,6 +2639,33 @@ class VotenmasseController extends Controller {
 												 ->getForm();
 									}
 									
+									$nb = 2;
+									
+									if ($infos_vote->getChoix10() != NULL) {
+										$nb = 10;
+									}
+									else if ($infos_vote->getChoix9() != NULL) {
+										$nb = 9;
+									}
+									else if ($infos_vote->getChoix8() != NULL) {
+										$nb = 8;
+									}
+									else if ($infos_vote->getChoix7() != NULL) {
+										$nb = 7;
+									}
+									else if ($infos_vote->getChoix6() != NULL) {
+										$nb = 6;
+									}
+									else if ($infos_vote->getChoix5() != NULL) {
+										$nb = 5;
+									}
+									else if ($infos_vote->getChoix4() != NULL) {
+										$nb = 4;
+									}
+									else if ($infos_vote->getChoix3() != NULL) {
+										$nb = 3;
+									}
+									
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
 										  'form' => $form->createView(),
 										  'vote_id' => $vote,
@@ -2654,7 +2681,8 @@ class VotenmasseController extends Controller {
 										  'choix7' => $infos_vote->getChoix7(),
 										  'choix8' => $infos_vote->getChoix8(),
 										  'choix9' => $infos_vote->getChoix9(),
-										  'choix10' => $infos_vote->getChoix10()
+										  'choix10' => $infos_vote->getChoix10(),
+										  'nb' => $nb
 										));
 								}
 								else {
@@ -4395,7 +4423,8 @@ class VotenmasseController extends Controller {
 										  'septieme' => $septieme,
 										  'huitieme' => $huitieme,
 										  'neuvieme' => $neuvieme,
-										  'dixieme' => $dixieme));
+										  'dixieme' => $dixieme,
+										  'nb' => 10));
 								}
 								if (isset($neuvieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4411,7 +4440,8 @@ class VotenmasseController extends Controller {
 										  'sixieme' => $sixieme,
 										  'septieme' => $septieme,
 										  'huitieme' => $huitieme,
-										  'neuvieme' => $neuvieme));
+										  'neuvieme' => $neuvieme,
+										  'nb' => 9));
 								}
 								if (isset($huitieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4426,7 +4456,8 @@ class VotenmasseController extends Controller {
 										  'cinquieme' => $cinquieme,
 										  'sixieme' => $sixieme,
 										  'septieme' => $septieme,
-										  'huitieme' => $huitieme));
+										  'huitieme' => $huitieme,
+										  'nb' => 8));
 								}
 								if (isset($septieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4440,7 +4471,8 @@ class VotenmasseController extends Controller {
 										  'quatrieme' => $quatrieme,
 										  'cinquieme' => $cinquieme,
 										  'sixieme' => $sixieme,
-										  'septieme' => $septieme));
+										  'septieme' => $septieme,
+										  'nb' => 7));
 								}
 								if (isset($sixieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4453,7 +4485,8 @@ class VotenmasseController extends Controller {
 											  'troisieme' => $troisieme,
 											  'quatrieme' => $quatrieme,
 											  'cinquieme' => $cinquieme,
-											  'sixieme' => $sixieme));
+											  'sixieme' => $sixieme,
+											  'nb' => 6));
 								}
 								if (isset($cinquieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4465,7 +4498,8 @@ class VotenmasseController extends Controller {
 										  'second' => $second,
 										  'troisieme' => $troisieme,
 										  'quatrieme' => $quatrieme,
-										  'cinquieme' => $cinquieme));
+										  'cinquieme' => $cinquieme,
+										  'nb' => 5));
 								}
 								if (isset($quatrieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4476,7 +4510,8 @@ class VotenmasseController extends Controller {
 										  'premier' => $premier,
 										  'second' => $second,
 										  'troisieme' => $troisieme,
-										  'quatrieme' => $quatrieme));
+										  'quatrieme' => $quatrieme,
+										  'nb' => 4));
 								}
 								if (isset($troisieme)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4486,7 +4521,8 @@ class VotenmasseController extends Controller {
 										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
 										  'premier' => $premier,
 										  'second' => $second,
-										  'troisieme' => $troisieme));
+										  'troisieme' => $troisieme,
+										  'nb' => 3));
 								}
 								if (isset($second)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4495,7 +4531,8 @@ class VotenmasseController extends Controller {
 										  'vote_texte' => $infos_vote->getTexte(),
 										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
 										  'premier' => $premier,
-										  'second' => $second));
+										  'second' => $second,
+										  'nb' => 2));
 								}
 								if (isset($premier)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4503,7 +4540,8 @@ class VotenmasseController extends Controller {
 										  'vote_nom' => $infos_vote->getNom(),
 										  'vote_texte' => $infos_vote->getTexte(),
 										  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-										  'premier' => $premier));
+										  'premier' => $premier,
+										  'nb' => 1));
 								}
 								if (!isset($premier)) {
 									return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -4693,6 +4731,33 @@ class VotenmasseController extends Controller {
 											 ->getForm();
 								}
 								
+								$nb = 2;
+									
+								if ($infos_vote->getChoix10() != NULL) {
+									$nb = 10;
+								}
+								else if ($infos_vote->getChoix9() != NULL) {
+									$nb = 9;
+								}
+								else if ($infos_vote->getChoix8() != NULL) {
+									$nb = 8;
+								}
+								else if ($infos_vote->getChoix7() != NULL) {
+									$nb = 7;
+								}
+								else if ($infos_vote->getChoix6() != NULL) {
+									$nb = 6;
+								}
+								else if ($infos_vote->getChoix5() != NULL) {
+									$nb = 5;
+								}
+								else if ($infos_vote->getChoix4() != NULL) {
+									$nb = 4;
+								}
+								else if ($infos_vote->getChoix3() != NULL) {
+									$nb = 3;
+								}
+								
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
 									  'form' => $form->createView(),
 									  'vote_id' => $vote,
@@ -4708,7 +4773,8 @@ class VotenmasseController extends Controller {
 									  'choix7' => $infos_vote->getChoix7(),
 									  'choix8' => $infos_vote->getChoix8(),
 									  'choix9' => $infos_vote->getChoix9(),
-									  'choix10' => $infos_vote->getChoix10()
+									  'choix10' => $infos_vote->getChoix10(),
+									  'nb' => $nb
 									));
 							}
 							else {
@@ -6449,7 +6515,8 @@ class VotenmasseController extends Controller {
 									  'septieme' => $septieme,
 									  'huitieme' => $huitieme,
 									  'neuvieme' => $neuvieme,
-									  'dixieme' => $dixieme));
+									  'dixieme' => $dixieme,
+									  'nb' => 10));
 							}
 							if (isset($neuvieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6465,7 +6532,8 @@ class VotenmasseController extends Controller {
 									  'sixieme' => $sixieme,
 									  'septieme' => $septieme,
 									  'huitieme' => $huitieme,
-									  'neuvieme' => $neuvieme));
+									  'neuvieme' => $neuvieme,
+									  'nb' => 9));
 							}
 							if (isset($huitieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6480,7 +6548,8 @@ class VotenmasseController extends Controller {
 									  'cinquieme' => $cinquieme,
 									  'sixieme' => $sixieme,
 									  'septieme' => $septieme,
-									  'huitieme' => $huitieme));
+									  'huitieme' => $huitieme,
+									  'nb' => 8));
 							}
 							if (isset($septieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6494,7 +6563,8 @@ class VotenmasseController extends Controller {
 									  'quatrieme' => $quatrieme,
 									  'cinquieme' => $cinquieme,
 									  'sixieme' => $sixieme,
-									  'septieme' => $septieme));
+									  'septieme' => $septieme,
+									  'nb' => 7));
 							}
 							if (isset($sixieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6507,7 +6577,8 @@ class VotenmasseController extends Controller {
 										  'troisieme' => $troisieme,
 										  'quatrieme' => $quatrieme,
 										  'cinquieme' => $cinquieme,
-										  'sixieme' => $sixieme));
+										  'sixieme' => $sixieme,
+										  'nb' => 6));
 							}
 							if (isset($cinquieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6519,7 +6590,8 @@ class VotenmasseController extends Controller {
 									  'second' => $second,
 									  'troisieme' => $troisieme,
 									  'quatrieme' => $quatrieme,
-									  'cinquieme' => $cinquieme));
+									  'cinquieme' => $cinquieme,
+									  'nb' => 5));
 							}
 							if (isset($quatrieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6530,7 +6602,8 @@ class VotenmasseController extends Controller {
 									  'premier' => $premier,
 									  'second' => $second,
 									  'troisieme' => $troisieme,
-									  'quatrieme' => $quatrieme));
+									  'quatrieme' => $quatrieme,
+									  'nb' => 4));
 							}
 							if (isset($troisieme)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6540,7 +6613,8 @@ class VotenmasseController extends Controller {
 									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
 									  'premier' => $premier,
 									  'second' => $second,
-									  'troisieme' => $troisieme));
+									  'troisieme' => $troisieme,
+									  'nb' => 3));
 							}
 							if (isset($second)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6549,7 +6623,8 @@ class VotenmasseController extends Controller {
 									  'vote_texte' => $infos_vote->getTexte(),
 									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
 									  'premier' => $premier,
-									  'second' => $second));
+									  'second' => $second,
+									  'nb' => 2));
 							}
 							if (isset($premier)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -6557,7 +6632,8 @@ class VotenmasseController extends Controller {
 									  'vote_nom' => $infos_vote->getNom(),
 									  'vote_texte' => $infos_vote->getTexte(),
 									  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-									  'premier' => $premier));
+									  'premier' => $premier,
+									  'nb' => 1));
 							}
 							if (!isset($premier)) {
 								return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7166,7 +7242,8 @@ class VotenmasseController extends Controller {
 						  'septieme' => $septieme,
 						  'huitieme' => $huitieme,
 						  'neuvieme' => $neuvieme,
-						  'dixieme' => $dixieme));
+						  'dixieme' => $dixieme,
+						  'nb' => 10));
 				}
 				if (isset($neuvieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7183,7 +7260,8 @@ class VotenmasseController extends Controller {
 						  'sixieme' => $sixieme,
 						  'septieme' => $septieme,
 						  'huitieme' => $huitieme,
-						  'neuvieme' => $neuvieme));
+						  'neuvieme' => $neuvieme,
+						  'nb' => 9));
 				}
 				if (isset($huitieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7199,7 +7277,8 @@ class VotenmasseController extends Controller {
 						  'cinquieme' => $cinquieme,
 						  'sixieme' => $sixieme,
 						  'septieme' => $septieme,
-						  'huitieme' => $huitieme));
+						  'huitieme' => $huitieme,
+						  'nb' => 8));
 				}
 				if (isset($septieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7214,7 +7293,8 @@ class VotenmasseController extends Controller {
 						  'quatrieme' => $quatrieme,
 						  'cinquieme' => $cinquieme,
 						  'sixieme' => $sixieme,
-						  'septieme' => $septieme));
+						  'septieme' => $septieme,
+						  'nb' => 7));
 				}
 				if (isset($sixieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7228,7 +7308,8 @@ class VotenmasseController extends Controller {
 							  'troisieme' => $troisieme,
 							  'quatrieme' => $quatrieme,
 							  'cinquieme' => $cinquieme,
-							  'sixieme' => $sixieme));
+							  'sixieme' => $sixieme,
+							  'nb' => 6));
 				}
 				if (isset($cinquieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7241,7 +7322,8 @@ class VotenmasseController extends Controller {
 						  'second' => $second,
 						  'troisieme' => $troisieme,
 						  'quatrieme' => $quatrieme,
-						  'cinquieme' => $cinquieme));
+						  'cinquieme' => $cinquieme,
+						  'nb' => 5));
 				}
 				if (isset($quatrieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7253,7 +7335,8 @@ class VotenmasseController extends Controller {
 						  'premier' => $premier,
 						  'second' => $second,
 						  'troisieme' => $troisieme,
-						  'quatrieme' => $quatrieme));
+						  'quatrieme' => $quatrieme,
+						  'nb' => 4));
 				}
 				if (isset($troisieme)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7264,7 +7347,8 @@ class VotenmasseController extends Controller {
 						  'groupe_associe' => $infos_vote->getGroupeAssocie(),
 						  'premier' => $premier,
 						  'second' => $second,
-						  'troisieme' => $troisieme));
+						  'troisieme' => $troisieme,
+						  'nb' => 3));
 				}
 				if (isset($second)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7274,7 +7358,8 @@ class VotenmasseController extends Controller {
 						  'vote_texte' => $infos_vote->getTexte(),
 						  'groupe_associe' => $infos_vote->getGroupeAssocie(),
 						  'premier' => $premier,
-						  'second' => $second));
+						  'second' => $second,
+						  'nb' => 2));
 				}
 				if (isset($premier)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -7283,7 +7368,8 @@ class VotenmasseController extends Controller {
 						  'vote_nom' => $infos_vote->getNom(),
 						  'vote_texte' => $infos_vote->getTexte(),
 						  'groupe_associe' => $infos_vote->getGroupeAssocie(),
-						  'premier' => $premier));
+						  'premier' => $premier,
+						  'nb' => 1));
 				}
 				if (!isset($premier)) {
 					return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
@@ -8609,6 +8695,33 @@ class VotenmasseController extends Controller {
 			// À ce stade :
 			// - Soit la requête est de type GET, donc le visiteur vient d'arriver sur la page et veut voir le formulaire
 			// - Soit la requête est de type POST, mais le formulaire n'est pas valide, donc on l'affiche de nouveau
+			
+			$nb = 2;
+									
+			if ($infos_vote->getChoix10() != NULL) {
+				$nb = 10;
+			}
+			else if ($infos_vote->getChoix9() != NULL) {
+				$nb = 9;
+			}
+			else if ($infos_vote->getChoix8() != NULL) {
+				$nb = 8;
+			}
+			else if ($infos_vote->getChoix7() != NULL) {
+				$nb = 7;
+			}
+			else if ($infos_vote->getChoix6() != NULL) {
+				$nb = 6;
+			}
+			else if ($infos_vote->getChoix5() != NULL) {
+				$nb = 5;
+			}
+			else if ($infos_vote->getChoix4() != NULL) {
+				$nb = 4;
+			}
+			else if ($infos_vote->getChoix3() != NULL) {
+				$nb = 3;
+			}
 
 			return $this->render('VotenmasseVotenmasseBundle:Votenmasse:affichage_vote.html.twig', array(
 			  'form' => $form->createView(),
@@ -8626,7 +8739,8 @@ class VotenmasseController extends Controller {
 			  'choix7' => $infos_vote->getChoix7(),
 			  'choix8' => $infos_vote->getChoix8(),
 			  'choix9' => $infos_vote->getChoix9(),
-			  'choix10' => $infos_vote->getChoix10()
+			  'choix10' => $infos_vote->getChoix10(),
+			  'nb' => $nb
 			));
 		}
 	}
@@ -9730,7 +9844,7 @@ class VotenmasseController extends Controller {
 				// S'il n'a pas filtré
 				if ($request->request->get('type') == null) {
 					$groupes = $this->getDoctrine()
-						->getRepository('VotenmasseVotenmasseBundle:groupe')
+						->getRepository('VotenmasseVotenmasseBundle:Groupe')
 						->findAll();
 				}
 				// Sinon s'il a demandé un filtre sur le type on va tester tous les cas possible pour type
@@ -12134,14 +12248,26 @@ class VotenmasseController extends Controller {
 	}
 	
 	public function aideAction() {
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:aide.html.twig');
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+	
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:aide.html.twig', array('utilisateur' => $u));
 	}
 	
 	public function aProposAction() {
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:a_propos.html.twig');
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+	
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:a_propos.html.twig', array('utilisateur' => $u));
 	}
 	
 	public function developpeursAction() {
-		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:developpeurs.html.twig');
+		$request = $this->get('request');
+		$session = $request->getSession();		
+		$u = $session->get('utilisateur');
+
+		return $this->render('VotenmasseVotenmasseBundle:Votenmasse:developpeurs.html.twig', array('utilisateur' => $u));
 	}
 }
